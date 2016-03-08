@@ -1,20 +1,31 @@
+import eventlet
+async_mode = 'eventlet'
+# monkey patching is necessary because this application uses a background thread
+eventlet.monkey_patch()
+
 import os
 import uuid
-import datetime
+import json
 import logging
+import datetime
 from hashids import Hashids
+
+from flask_socketio import SocketIO, emit, join_room, leave_room, \
+    close_room, rooms, disconnect
+
+from flask_mail import Mail
 from flask.ext.cors import CORS
-from flask import Flask, render_template, request, flash, redirect, url_for
+from flask.ext.admin import Admin
+from flask.ext.admin.contrib import sqla
+from flask import Flask, render_template, request, flash, redirect, url_for, jsonify
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.declarative import declared_attr, declarative_base
 from flask.ext.security import current_user, login_required, RoleMixin, Security, \
     SQLAlchemyUserDatastore, UserMixin, utils
-from flask_mail import Mail
-from flask.ext.admin import Admin
-from flask.ext.admin.contrib import sqla
 
 from wtforms.fields import PasswordField
 
+os.environ['TZ'] = 'UTC'
 
 try:
     # Make dir to store logs in
@@ -34,6 +45,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
 
+socketio = SocketIO(app, async_mode=async_mode)
 mail = Mail(app)
 db = SQLAlchemy(app)
 
@@ -48,7 +60,6 @@ def generate_uid():
 def generate_key(id, salt, size=8):
     hashids = Hashids(salt=salt, min_length=size)
     return hashids.encode(id)
-
 
 # Define models
 roles_users = db.Table(
@@ -98,12 +109,22 @@ class ApiKey(db.Model):
     name = db.Column(db.String(64))
     host = db.Column(db.String(255))
     key = db.Column(db.String(36), default=generate_uid, unique=True)
-    date_added = db.Column(db.DateTime, default=datetime.datetime.now)
+    time_added = db.Column(db.DateTime, default=datetime.datetime.now)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
     def __init__(self, name, host):
         self.name = name
         self.host = host
+
+    @property
+    def serialize(self):
+        """Return object data in easily serializeable format"""
+        return {'id': self.id,
+                'name': self.name,
+                'host': self.host,
+                'key': self.key,
+                'time_added': datetime_to_str(self.time_added),
+                }
 
 
 class Group(db.Model):
@@ -117,6 +138,13 @@ class Group(db.Model):
     def __init__(self, name):
         self.name = name
 
+    @property
+    def serialize(self):
+        """Return object data in easily serializeable format"""
+        return {'id': self.id,
+                'name': self.name,
+                }
+
 
 class Scraper(db.Model):
     __tablename__ = 'scraper'
@@ -125,15 +153,37 @@ class Scraper(db.Model):
     name = db.Column(db.String(64))
     owner = db.Column(db.String(64))
     key = db.Column(db.String(32), unique=True)
-    date_added = db.Column(db.DateTime, default=datetime.datetime.now)
+    time_added = db.Column(db.DateTime, default=datetime.datetime.now)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     group_id = db.Column(db.Integer, db.ForeignKey('group.id'))
     scraper_runs = db.relationship('ScraperRun', backref='scraper',
-                                   cascade='all, delete', lazy='dynamic')
+                                   cascade='all, delete-orphan', lazy='dynamic')
 
     def __init__(self, name, owner):
         self.name = name
         self.owner = owner
+
+    @property
+    def serialize(self):
+        """Return object data in easily serializeable format"""
+        # group = self.group
+        # if group is not None:
+        #     group = group.serialize
+        #     group = group['name']
+
+        # Need to do this query, one above breaks when deleting a scraper
+        group = Group.query.filter_by(user_id=current_user.id)\
+                           .filter_by(id=self.group_id).scalar()
+        if group is not None:
+            group = group.serialize
+            group = group['name']
+        return {'id': self.id,
+                'name': self.name,
+                'owner': self.owner,
+                'key': self.key,
+                'group': group,
+                'time_added': datetime_to_str(self.time_added),
+                }
 
 
 class ScraperRun(db.Model):
@@ -141,7 +191,7 @@ class ScraperRun(db.Model):
     # __table_args__ = {'schema': 'scraper_monitor'}
     id = db.Column(db.Integer(), primary_key=True)
     key = db.Column(db.String(32), default=generate_uid, unique=True)
-    date_added = db.Column(db.DateTime, default=datetime.datetime.now)
+    time_added = db.Column(db.DateTime, default=datetime.datetime.now)
     scraper_key = db.Column(db.String(32), db.ForeignKey('scraper.key'))
     scraper_logs = db.relationship('ScraperLog', backref='scraper',
                                    cascade='all, delete', lazy='dynamic')
@@ -152,7 +202,7 @@ class ScraperLog(db.Model):
     # __table_args__ = {'schema': 'scraper_monitor'}
     id = db.Column(db.Integer(), primary_key=True)
     value = db.Column(db.Text)
-    date_added = db.Column(db.DateTime, default=datetime.datetime.now)
+    time_added = db.Column(db.DateTime, default=datetime.datetime.now)
     scraper_key = db.Column(db.String(32), db.ForeignKey('scraper.key'))
     scraper_run = db.Column(db.String(32), db.ForeignKey('run.key'))
 
@@ -166,13 +216,10 @@ security = Security(app, user_datastore)
 
 # Customized User model for SQL-Admin
 class UserAdmin(sqla.ModelView):
-
     # Don't display the password on the list of Users
     column_exclude_list = ('password',)
-
     # Don't include the standard password field when creating or editing a User (but see below)
     form_excluded_columns = ('password',)
-
     # Automatically display human-readable names for the current and available Roles when creating or editing a User
     column_auto_select_related = True
 
@@ -184,11 +231,9 @@ class UserAdmin(sqla.ModelView):
     # There are two reasons for this. First, we want to encrypt the password before storing in the database. Second,
     # we want to use a password field (with the input masked) rather than a regular text field.
     def scaffold_form(self):
-
         # Start with the standard form as provided by Flask-Admin. We've already told Flask-Admin to exclude the
         # password field from this form.
         form_class = super(UserAdmin, self).scaffold_form()
-
         # Add a password field, naming it "password2" and labeling it "New Password".
         form_class.password2 = PasswordField('New Password')
         return form_class
@@ -196,10 +241,8 @@ class UserAdmin(sqla.ModelView):
     # This callback executes when the user saves changes to a newly-created or edited User -- before the changes are
     # committed to the database.
     def on_model_change(self, form, model, is_created):
-
         # If the password field isn't blank...
         if len(model.password2):
-
             # ... then encrypt the new password prior to storing it in the database. If the password field is blank,
             # the existing password in the database will be retained.
             model.password = utils.encrypt_password(model.password2)
@@ -234,50 +277,79 @@ def index():
 ###
 # Api Key Routes
 ###
+@socketio.on('connect', namespace='/apikeys')
+def connect_apikeys():
+    apikeys = ApiKey.query.filter_by(user_id=current_user.id).all()
+    apikeys = [i.serialize for i in apikeys]
+    emit('apikeys', {'data': apikeys, 'action': 'add'})
+
+
 @app.route('/apikeys', methods=['GET', 'POST'])
 @login_required
 def apikeys():
     logger.info("Api Keys page with type {}".format(request.method))
     if request.method == 'POST':
+        rdata = {'error': False,
+                 'message': '',
+                 }
         if not request.form['name']:
-            flash("Name is required", 'error')
+            rdata['message'] = "Name is required"
+            rdata['error'] = True
         else:
             apikey = ApiKey(request.form['name'], request.form['host'])
             apikey.user = current_user
             db.session.add(apikey)
             db.session.commit()
-            flash("Api key was successfully created")
-            return redirect(url_for('apikeys'))
+            data = [apikey.serialize]
+            socketio.emit('apikeys',
+                          {'data': data, 'action': 'add'},
+                          namespace='/apikeys'
+                          )
+            rdata['message'] = "Api key {} was successfully created".format(apikey.name)
+        return jsonify(rdata)
 
-    return render_template('apikeys.html',
-                           apikeys=ApiKey.query.filter_by(user_id=current_user.id).all()
-                           )
+    return render_template('apikeys.html')
 
 
-@app.route('/apikey/delete/<int:apikey_id>', methods=['GET'])
+@app.route('/apikeys/delete/<int:apikey_id>', methods=['GET'])
 @login_required
 def apikey_delete(apikey_id):
-    api_key = ApiKey.query.filter_by(user_id=current_user.id)\
-                          .filter_by(id=apikey_id).scalar()
-    db.session.delete(api_key)
+    apikey = ApiKey.query.filter_by(user_id=current_user.id)\
+                         .filter_by(id=apikey_id).scalar()
+    db.session.delete(apikey)
     db.session.commit()
-    logger.info("User {} deleted API Key {}".format(current_user, api_key.name))
-    flash("Deleted API key " + api_key.name)
-    return redirect(url_for('apikeys'))
+    logger.info("User {} deleted API Key {}".format(current_user, apikey.name))
+    data = [apikey.serialize]
+    socketio.emit('apikeys',
+                  {'data': data, 'action': 'delete'},
+                  namespace='/apikeys'
+                  )
+    return jsonify({'message': "Deleted API key " + apikey.name})
 
 
 ###
 # Sensor Routes
 ###
+@socketio.on('connect', namespace='/scrapers')
+def connect_scrapers():
+    scrapers = Scraper.query.filter_by(user_id=current_user.id).all()
+    scrapers = [i.serialize for i in scrapers]
+    emit('scrapers', {'data': scrapers, 'action': 'add'})
+
+
 @app.route('/scrapers', methods=['GET', 'POST'])
 @login_required
 def scrapers():
     if request.method == 'POST':
+        rdata = {'error': False,
+                 'message': '',
+                 }
         name = request.form['name'].strip()
         owner = request.form['owner'].strip()
         group = request.form['group'].strip()
         if not name:
-            flash("Name is required", 'error')
+            rdata['message'] = "Name is required"
+            rdata['error'] = True
         else:
             scraper = Scraper(name, owner)
             scraper.user = current_user
@@ -294,17 +366,21 @@ def scrapers():
             db.session.commit()
             logger.info("User {} created scraper {} - {}"
                         .format(current_user.email, scraper.key, scraper.name))
-            flash("Scraper {} was successfully created".format(scraper.name))
-            return redirect(url_for('scrapers'))
+            data = [scraper.serialize]
+            socketio.emit('scrapers',
+                          {'data': data, 'action': 'add'},
+                          namespace='/scrapers'
+                          )
+            rdata['message'] = "Api key {} was successfully created".format(scraper.name)
+        return jsonify(rdata)
 
     return render_template('scrapers.html',
-                           scrapers=Scraper.query.filter_by(user_id=current_user.id).all(),
                            groups=Group.query.filter_by(user_id=current_user.id)
                                              .order_by(Group.name.asc()).all()
                            )
 
 
-@app.route('/scraper/delete/<int:scraper_id>', methods=['GET'])
+@app.route('/scrapers/delete/<int:scraper_id>', methods=['GET'])
 @login_required
 def scraper_delete(scraper_id):
     scraper = Scraper.query.filter_by(user_id=current_user.id).filter_by(id=scraper_id).scalar()
@@ -312,25 +388,41 @@ def scraper_delete(scraper_id):
     db.session.commit()
     logger.info("User {} deleted scraper {} - {}"
                 .format(current_user.email, scraper.key, scraper.name))
-    flash("Deleted scraper " + scraper.name)
-    return redirect(url_for('scrapers'))
+    data = [scraper.serialize]
+    socketio.emit('scrapers',
+                  {'data': data, 'action': 'delete'},
+                  namespace='/scrapers'
+                  )
+    return jsonify({'message': "Deleted Scraper " + scraper.name})
 
 
 ###
 # Group Routes
 ###
+@socketio.on('connect', namespace='/groups')
+def connect_groups():
+    groups = Group.query.filter_by(user_id=current_user.id).all()
+    groups = [i.serialize for i in groups]
+    emit('groups', {'data': groups, 'action': 'add'})
+
+
 @app.route('/groups', methods=['GET', 'POST'])
 @login_required
 def groups():
     if request.method == 'POST':
+        rdata = {'error': False,
+                 'message': '',
+                 }
         name = request.form['name'].strip()
         if not name:
-            flash("Name is required", 'error')
+            rdata['message'] = "Name is required"
+            rdata['error'] = True
         else:
             # Check if group name for user already exists
             is_group = Group.query.filter_by(user_id=current_user.id).filter_by(name=name).scalar()
             if is_group is not None:
-                flash("Group with name {} already exists".format(name), 'error')
+                rdata['message'] = "Group with name {} already exists".format(name)
+                rdata['error'] = True
             else:
                 group = Group(name)
                 group.user = current_user
@@ -339,15 +431,18 @@ def groups():
                 db.session.commit()
                 logger.info("User {} created group {}"
                             .format(current_user.email, group.name))
-                flash("Group {} was successfully created".format(group.name))
-                return redirect(url_for('groups'))
+                data = [group.serialize]
+                socketio.emit('groups',
+                              {'data': data, 'action': 'add'},
+                              namespace='/groups'
+                              )
+                rdata['message'] = "Api key {} was successfully created".format(group.name)
+        return jsonify(rdata)
 
-    return render_template('groups.html',
-                           groups=Group.query.filter_by(user_id=current_user.id).all(),
-                           )
+    return render_template('groups.html')
 
 
-@app.route('/group/delete/<int:group_id>', methods=['GET'])
+@app.route('/groups/delete/<int:group_id>', methods=['GET'])
 @login_required
 def group_delete(group_id):
     group = Group.query.filter_by(user_id=current_user.id).filter_by(id=group_id).scalar()
@@ -355,8 +450,20 @@ def group_delete(group_id):
     db.session.commit()
     logger.info("User {} deleted group {}"
                 .format(current_user.email, group.name))
-    flash("Deleted group {}".format(group.name))
-    return redirect(url_for('groups'))
+    data = [group.serialize]
+    socketio.emit('groups',
+                  {'data': data, 'action': 'delete'},
+                  namespace='/groups'
+                  )
+    return jsonify({'message': "Deleted Group " + group.name})
+
+
+#######################
+# App Utils
+#######################
+def datetime_to_str(timestamp):
+    # The script is set to use UTC, so all times are in UTC
+    return timestamp.isoformat() + "+0000"
 
 
 # Executes before the first request is processed.
@@ -385,5 +492,4 @@ def before_first_request():
     db.session.commit()
 
 if __name__ == '__main__':
-    # Start app
-    app.run()
+    socketio.run(app, debug=True)
