@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Scraper Monitor</title>
+		<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+		<meta charset="utf-8">
+
+		<link href="static/css/bootstrap.css" rel="stylesheet">
+		<link href="static/css/jquery.dataTables.min.css" rel="stylesheet">
+		<link href="static/css/styles.css" rel="stylesheet">
+	</head>
+	<body>
+
+		<div class="navbar navbar-inverse navbar-fixed-top">
+			<div class="navbar-inner">
+				<div class="container">
+					<button type="button" class="btn btn-navbar" data-toggle="collapse"
+						data-target=".nav-collapse">
+						<span class="icon-bar"></span> <span class="icon-bar"></span> <span
+							class="icon-bar"></span>
+					</button>
+					<a class="brand" href="/">Scraper Monitor</a>
+					<div class="nav-collapse collapse">
+						<ul class="nav">
+							<li class="active"><a href="/">Home</a></li>
+							{% if current_user.is_authenticated%}
+								<li><a href="{{ url_for('apikeys') }}">API Keys</a></li>
+								<li><a href="{{ url_for('scrapers') }}">Scrapers</a></li>
+								<li><a href="{{ url_for('security.logout') }}">Logout</a></li>
+							{% else %}
+								<li><a href="{{ url_for('security.login') }}">Login</a></li>
+							{% endif %}
+							{% if current_user.has_role('admin') %}
+							<li><a href="admin">Admin</a></li>
+							{% endif %}
+						</ul>
+					</div>
+					<!--/.nav-collapse -->
+				</div>
+			</div>
+		</div>
+
+		<div id="main" class="container">
+			{% with messages = get_flashed_messages() %}
+			{% if messages %}
+				<div class="alert">
+					<ul class="flashes">
+					{% for message in messages %}
+						<li>{{ message }}</li>
+					{% endfor %}
+					</ul>
+				</div>
+			{% endif %}
+			{% endwith %}
+
+			{% block body %}{% endblock %}
+			<hr>
+			<footer id="footer">
+				<p>&copy; Eddy Hintze 2016</p>		
+			</footer>
+		</div>
+
+		<script src="static/js/jquery.min.js"></script>
+		<script src="static/js/jquery.dataTables.1.10.10.min.js"></script>
+		<script src="static/js/init.js"></script>
+	</body>
+</html>
