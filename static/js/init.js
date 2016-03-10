@@ -1,5 +1,6 @@
 $(document).ready(function(){
     $('#tbl-apikeys').DataTable({
+        aaSorting: [ [1, 'asc']],
         columnDefs: [
             { "visible": false, "targets": 0 }  // Hide the id column
         ],
@@ -17,7 +18,7 @@ $(document).ready(function(){
         },
     });
     $('#tbl-scrapers').DataTable({
-        aaSorting: [ [0, 'asc'], [1, 'asc'] ],
+        aaSorting: [ [1, 'asc'], [2, 'asc'] ],
         columnDefs: [
             { "visible": false, "targets": 0 }  // Hide the id column
         ],
@@ -36,7 +37,7 @@ $(document).ready(function(){
         },
     });
     $('#tbl-groups').DataTable({
-        aaSorting: [ [0, 'asc']],
+        aaSorting: [ [1, 'asc']],
         columnDefs: [
             { "visible": false, "targets": 0 }  // Hide the id column
         ],
@@ -52,18 +53,16 @@ $(document).ready(function(){
     });
 
     var page = window.location.pathname;
-
     var url = window.location.origin + page;
     var socket = io.connect( url );
 
-    
-    if( page === '/apikeys' ){
+    if( page === '/manage/apikeys' ){
         socket_listen = 'apikeys';
         $form = $('#add-apikey');
-    }else if( page === '/scrapers' ){
+    }else if( page === '/manage/scrapers' ){
         socket_listen = 'scrapers';
         $form = $('#add-scraper');
-    }else if( page === '/groups' ){
+    }else if( page === '/manage/groups' ){
         socket_listen = 'groups';
         $form = $('#add-group');
     }

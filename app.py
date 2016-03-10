@@ -1,13 +1,9 @@
-import eventlet
-async_mode = 'eventlet'
-# monkey patching is necessary because this application uses a background thread
-eventlet.monkey_patch()
-
 import os
 import uuid
-import json
 import logging
 import datetime
+import eventlet
+from functools import wraps
 from hashids import Hashids
 
 from flask_socketio import SocketIO, emit, join_room, leave_room, \
@@ -17,13 +13,18 @@ from flask_mail import Mail
 from flask.ext.cors import CORS
 from flask.ext.admin import Admin
 from flask.ext.admin.contrib import sqla
-from flask import Flask, render_template, request, flash, redirect, url_for, jsonify
 from flask.ext.sqlalchemy import SQLAlchemy
+from flask.ext.restful import Resource, Api, abort
 from sqlalchemy.ext.declarative import declared_attr, declarative_base
+from flask import Flask, render_template, request, flash, redirect, url_for, jsonify
 from flask.ext.security import current_user, login_required, RoleMixin, Security, \
     SQLAlchemyUserDatastore, UserMixin, utils
 
 from wtforms.fields import PasswordField
+
+async_mode = 'eventlet'
+# monkey patching is necessary because this application uses a background thread
+eventlet.monkey_patch()
 
 os.environ['TZ'] = 'UTC'
 
@@ -44,6 +45,9 @@ logger = logging.getLogger(__name__)
 # Create Flask application
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
+
+api = Api(app, prefix='/api/v1')
+cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 socketio = SocketIO(app, async_mode=async_mode)
 mail = Mail(app)
@@ -277,24 +281,24 @@ def index():
 ###
 # Api Key Routes
 ###
-@socketio.on('connect', namespace='/apikeys')
+@socketio.on('connect', namespace='/manage/apikeys')
 def connect_apikeys():
     apikeys = ApiKey.query.filter_by(user_id=current_user.id).all()
     apikeys = [i.serialize for i in apikeys]
     emit('apikeys', {'data': apikeys, 'action': 'add'})
 
 
-@app.route('/apikeys', methods=['GET', 'POST'])
+@app.route('/manage/apikeys', methods=['GET', 'POST'])
 @login_required
 def apikeys():
     logger.info("Api Keys page with type {}".format(request.method))
     if request.method == 'POST':
-        rdata = {'error': False,
+        rdata = {'success': False,
                  'message': '',
                  }
         if not request.form['name']:
             rdata['message'] = "Name is required"
-            rdata['error'] = True
+            rdata['success'] = False
         else:
             apikey = ApiKey(request.form['name'], request.form['host'])
             apikey.user = current_user
@@ -303,15 +307,16 @@ def apikeys():
             data = [apikey.serialize]
             socketio.emit('apikeys',
                           {'data': data, 'action': 'add'},
-                          namespace='/apikeys'
+                          namespace='/manage/apikeys'
                           )
             rdata['message'] = "Api key {} was successfully created".format(apikey.name)
+            rdata['success'] = True
         return jsonify(rdata)
 
-    return render_template('apikeys.html')
+    return render_template('manage/apikeys.html')
 
 
-@app.route('/apikeys/delete/<int:apikey_id>', methods=['GET'])
+@app.route('/manage/apikeys/delete/<int:apikey_id>', methods=['GET'])
 @login_required
 def apikey_delete(apikey_id):
     apikey = ApiKey.query.filter_by(user_id=current_user.id)\
@@ -322,7 +327,7 @@ def apikey_delete(apikey_id):
     data = [apikey.serialize]
     socketio.emit('apikeys',
                   {'data': data, 'action': 'delete'},
-                  namespace='/apikeys'
+                  namespace='/manage/apikeys'
                   )
     return jsonify({'message': "Deleted API key " + apikey.name})
 
@@ -330,18 +335,18 @@ def apikey_delete(apikey_id):
 ###
 # Sensor Routes
 ###
-@socketio.on('connect', namespace='/scrapers')
+@socketio.on('connect', namespace='/manage/scrapers')
 def connect_scrapers():
     scrapers = Scraper.query.filter_by(user_id=current_user.id).all()
     scrapers = [i.serialize for i in scrapers]
     emit('scrapers', {'data': scrapers, 'action': 'add'})
 
 
-@app.route('/scrapers', methods=['GET', 'POST'])
+@app.route('/manage/scrapers', methods=['GET', 'POST'])
 @login_required
 def scrapers():
     if request.method == 'POST':
-        rdata = {'error': False,
+        rdata = {'success': False,
                  'message': '',
                  }
         name = request.form['name'].strip()
@@ -349,7 +354,7 @@ def scrapers():
         group = request.form['group'].strip()
         if not name:
             rdata['message'] = "Name is required"
-            rdata['error'] = True
+            rdata['success'] = False
         else:
             scraper = Scraper(name, owner)
             scraper.user = current_user
@@ -369,18 +374,19 @@ def scrapers():
             data = [scraper.serialize]
             socketio.emit('scrapers',
                           {'data': data, 'action': 'add'},
-                          namespace='/scrapers'
+                          namespace='/manage/scrapers'
                           )
             rdata['message'] = "Api key {} was successfully created".format(scraper.name)
+            rdata['success'] = True
         return jsonify(rdata)
 
-    return render_template('scrapers.html',
+    return render_template('manage/scrapers.html',
                            groups=Group.query.filter_by(user_id=current_user.id)
                                              .order_by(Group.name.asc()).all()
                            )
 
 
-@app.route('/scrapers/delete/<int:scraper_id>', methods=['GET'])
+@app.route('/manage/scrapers/delete/<int:scraper_id>', methods=['GET'])
 @login_required
 def scraper_delete(scraper_id):
     scraper = Scraper.query.filter_by(user_id=current_user.id).filter_by(id=scraper_id).scalar()
@@ -391,7 +397,7 @@ def scraper_delete(scraper_id):
     data = [scraper.serialize]
     socketio.emit('scrapers',
                   {'data': data, 'action': 'delete'},
-                  namespace='/scrapers'
+                  namespace='/manage/scrapers'
                   )
     return jsonify({'message': "Deleted Scraper " + scraper.name})
 
@@ -399,30 +405,30 @@ def scraper_delete(scraper_id):
 ###
 # Group Routes
 ###
-@socketio.on('connect', namespace='/groups')
+@socketio.on('connect', namespace='/manage/groups')
 def connect_groups():
     groups = Group.query.filter_by(user_id=current_user.id).all()
     groups = [i.serialize for i in groups]
     emit('groups', {'data': groups, 'action': 'add'})
 
 
-@app.route('/groups', methods=['GET', 'POST'])
+@app.route('/manage/groups', methods=['GET', 'POST'])
 @login_required
 def groups():
     if request.method == 'POST':
-        rdata = {'error': False,
+        rdata = {'success': False,
                  'message': '',
                  }
         name = request.form['name'].strip()
         if not name:
             rdata['message'] = "Name is required"
-            rdata['error'] = True
+            rdata['success'] = False
         else:
             # Check if group name for user already exists
             is_group = Group.query.filter_by(user_id=current_user.id).filter_by(name=name).scalar()
             if is_group is not None:
                 rdata['message'] = "Group with name {} already exists".format(name)
-                rdata['error'] = True
+                rdata['success'] = False
             else:
                 group = Group(name)
                 group.user = current_user
@@ -434,15 +440,16 @@ def groups():
                 data = [group.serialize]
                 socketio.emit('groups',
                               {'data': data, 'action': 'add'},
-                              namespace='/groups'
+                              namespace='/manage/groups'
                               )
                 rdata['message'] = "Api key {} was successfully created".format(group.name)
+                rdata['success'] = True
         return jsonify(rdata)
 
-    return render_template('groups.html')
+    return render_template('manage/groups.html')
 
 
-@app.route('/groups/delete/<int:group_id>', methods=['GET'])
+@app.route('/manage/groups/delete/<int:group_id>', methods=['GET'])
 @login_required
 def group_delete(group_id):
     group = Group.query.filter_by(user_id=current_user.id).filter_by(id=group_id).scalar()
@@ -453,9 +460,115 @@ def group_delete(group_id):
     data = [group.serialize]
     socketio.emit('groups',
                   {'data': data, 'action': 'delete'},
-                  namespace='/groups'
+                  namespace='/manage/groups'
                   )
     return jsonify({'message': "Deleted Group " + group.name})
+
+
+#######################
+# API Method Decorators
+#######################
+def authenticate_api(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            # Get apikey and check it against the database
+            apikey = request.args['apikey']
+            found_key = ApiKey.query.filter_by(key=apikey).scalar()
+            if found_key is not None:
+                # If valid, return
+                return func(*args, **kwargs)
+            # If invalid, abort
+            logger.warning("authenticate_api: abort 401")
+            abort(401)
+        except KeyError:
+            # If apikey is not even passed
+            logger.warning("authenticate_api KeyError: abort 401", exc_info=True)
+            abort(401)
+    return wrapper
+
+
+def validate_api_scraper_key(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        rdata = {'success': False,
+                 'message': ""
+                 }
+        try:
+            user_id = None
+            api_key = request.args['apikey']
+            if 'scraper_key' in request.args:
+                scraper_key = request.args['scraper_key']
+                # Check that the apikey has acccess to the sensor
+                user_id = Scraper.query.filter_by(key=scraper_key).scalar().user_id
+            else:
+                rdata['message'] = "Missing sensor key"
+                return rdata
+
+            key_user_id = ApiKey.query.filter_by(key=api_key).scalar().user_id
+            if key_user_id == user_id:
+                # The api key and sensor/group both belong to the same user
+                return func(*args, **kwargs)
+            else:
+                logger.warning("Invalid scraper key")
+                rdata['message'] = "Invalid scraper key"
+        except AttributeError:
+            logger.warning("Invalid scraper key", exc_info=True)
+            rdata['message'] = "Invalid scraper key"
+        except Exception:
+            logger.exception("Oops, somthing went wrong when validating your scraper")
+            rdata['message'] = "Oops, somthing went wrong when validating your scraper"
+
+        return rdata
+    return wrapper
+
+
+#######################
+# API Endpoints
+#######################
+class APIAddScraperData(Resource):
+    method_decorators = [validate_api_scraper_key, authenticate_api]
+
+    def get(self):
+        rdata = {'success': False,
+                 'message': ""
+                 }
+        try:
+            scraper_key = request.args['scraper_key']
+            value = request.args['value']
+            # Add sensor data to db
+            # scraper = Sensor.query.filter_by(key=sensor_key).scalar()
+            # sensor_data = SensorData(value)
+            # sensor_data.sensor = sensor
+
+            # db.session.add(sensor_data)
+            # db.session.commit()
+
+            socketio.emit('scrapedData',
+                          {'scraper_key': scraper_key, 'value': value},
+                          namespace='/scrapedData'
+                          )
+            rdata['success'] = True
+        except KeyError:
+            logger.info("You are missing the key/value")
+            rdata['message'] = "You are missing the key/value"
+        except Exception:
+            logger.exception("[APIAddSensorData GET] Oops, something went wrong")
+            rdata['message'] = "Oops, something went wrong"
+
+        return rdata
+
+    def post(self):
+        rdata = {'success': False,
+                 'message': ""
+                 }
+
+        rdata['success'] = False
+        rdata['message'] = "Currently not supported"
+
+        return rdata
+
+api.add_resource(APIAddScraperData, '/add/group')
 
 
 #######################
