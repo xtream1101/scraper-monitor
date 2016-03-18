@@ -24,9 +24,10 @@
 						<ul class="nav">
 							<li class="active"><a href="/">Home</a></li>
 							{% if current_user.is_authenticated%}
-								<li><a href="{{ url_for('groups') }}">m/Groups</a></li>
-								<li><a href="{{ url_for('scrapers') }}">m/Scrapers</a></li>
-								<li><a href="{{ url_for('apikeys') }}">m/API Keys</a></li>
+								<li><a href="{{ url_for('manage_groups') }}">m/Groups</a></li>
+								<li><a href="{{ url_for('manage_scrapers') }}">m/Scrapers</a></li>
+								<li><a href="{{ url_for('manage_apikeys') }}">m/API Keys</a></li>
+								<li><a href="{{ url_for('data_scrapers') }}">d/Scrapers</a></li>
 								<li><a href="{{ url_for('security.logout') }}">Logout</a></li>
 							{% else %}
 								<li><a href="{{ url_for('security.login') }}">Login</a></li>

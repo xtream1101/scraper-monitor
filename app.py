@@ -22,6 +22,8 @@ from flask.ext.security import current_user, login_required, RoleMixin, Security
 
 from wtforms.fields import PasswordField
 
+from pprint import pprint
+
 async_mode = 'eventlet'
 # monkey patching is necessary because this application uses a background thread
 eventlet.monkey_patch()
@@ -34,8 +36,8 @@ try:
 except OSError:
     pass
 
-logging.basicConfig(level=logging.DEBUG,
-                    filename='./logs/datalogging.log',
+logging.basicConfig(level=logging.WARNING,
+                    # filename='./logs/scraper_monitor.log',
                     format='%(asctime)s %(name)s %(levelname)s %(message)s'
                     )
 
@@ -68,15 +70,15 @@ def generate_key(id, salt, size=8):
 # Define models
 roles_users = db.Table(
     'roles_users',
-    db.Column('user_id', db.Integer(), db.ForeignKey('user.id')),
-    db.Column('role_id', db.Integer(), db.ForeignKey('role.id'))
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
+    db.Column('role_id', db.Integer, db.ForeignKey('role.id'))
 )
 
 
 class Role(db.Model, RoleMixin):
     # __tablename__ = 'role'
     # __table_args__ = {'schema': 'scraper_monitor'}
-    id = db.Column(db.Integer(), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), unique=True)
     description = db.Column(db.String(255))
 
@@ -92,7 +94,7 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(255), unique=True)
     password = db.Column(db.String(255))
     active = db.Column(db.Boolean())
-    confirmed_at = db.Column(db.DateTime())
+    confirmed_at = db.Column(db.DateTime)
     roles = db.relationship('Role', secondary=roles_users,
                             backref=db.backref('users', lazy='dynamic'))
     apikeys = db.relationship('ApiKey', backref='user', cascade='all, delete',
@@ -109,7 +111,7 @@ class User(db.Model, UserMixin):
 class ApiKey(db.Model):
     __tablename__ = 'apikey'
     # __table_args__ = {'schema': 'scraper_monitor'}
-    id = db.Column(db.Integer(), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64))
     host = db.Column(db.String(255))
     key = db.Column(db.String(36), default=generate_uid, unique=True)
@@ -134,7 +136,7 @@ class ApiKey(db.Model):
 class Group(db.Model):
     __tablename__ = 'group'
     # __table_args__ = {'schema': 'scraper_monitor'}
-    id = db.Column(db.Integer(), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     scrapers = db.relationship('Scraper', backref='group', lazy='dynamic')
@@ -153,7 +155,7 @@ class Group(db.Model):
 class Scraper(db.Model):
     __tablename__ = 'scraper'
     # __table_args__ = {'schema': 'scraper_monitor'}
-    id = db.Column(db.Integer(), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64))
     owner = db.Column(db.String(64))
     key = db.Column(db.String(32), unique=True)
@@ -176,8 +178,7 @@ class Scraper(db.Model):
         #     group = group['name']
 
         # Need to do this query, one above breaks when deleting a scraper
-        group = Group.query.filter_by(user_id=current_user.id)\
-                           .filter_by(id=self.group_id).scalar()
+        group = Group.query.filter_by(id=self.group_id).scalar()
         if group is not None:
             group = group.serialize
             group = group['name']
@@ -193,25 +194,62 @@ class Scraper(db.Model):
 class ScraperRun(db.Model):
     __tablename__ = 'run'
     # __table_args__ = {'schema': 'scraper_monitor'}
-    id = db.Column(db.Integer(), primary_key=True)
-    key = db.Column(db.String(32), default=generate_uid, unique=True)
-    time_added = db.Column(db.DateTime, default=datetime.datetime.now)
+    id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(32), unique=True)
+    start_time = db.Column(db.DateTime)
+    stop_time = db.Column(db.DateTime)
+    runtime = db.Column(db.Float)
+    critical_count = db.Column(db.Integer)
+    error_count = db.Column(db.Integer)
+    warning_count = db.Column(db.Integer)
     scraper_key = db.Column(db.String(32), db.ForeignKey('scraper.key'))
     scraper_logs = db.relationship('ScraperLog', backref='scraper',
                                    cascade='all, delete', lazy='dynamic')
+
+    @property
+    def serialize(self):
+        """Return object data in easily serializeable format"""
+
+        # Need to do this query, one above breaks when deleting a scraper
+        scraper = Scraper.query.filter_by(key=self.scraper_key).scalar()
+        if scraper is not None:
+            scraper = scraper.serialize
+        return {'id': self.id,
+                'uuid': self.uuid,
+                'name': scraper['name'],
+                'startTime': datetime_to_str(self.start_time),
+                'stopTime': datetime_to_str(self.stop_time),
+                'runtime': self.runtime,
+                'criticalCount': self.critical_count,
+                'errorCount': self.error_count,
+                'warningCount': self.warning_count,
+                }
 
 
 class ScraperLog(db.Model):
     __tablename__ = 'run_log'
     # __table_args__ = {'schema': 'scraper_monitor'}
     id = db.Column(db.Integer(), primary_key=True)
-    value = db.Column(db.Text)
-    time_added = db.Column(db.DateTime, default=datetime.datetime.now)
-    scraper_key = db.Column(db.String(32), db.ForeignKey('scraper.key'))
-    scraper_run = db.Column(db.String(32), db.ForeignKey('run.key'))
+    exc_info = db.Column(db.Text)
+    exc_text = db.Column(db.Text)
+    filename = db.Column(db.String(256))
+    func_name = db.Column(db.String(256))
+    level_name = db.Column(db.String(256))
+    level_no = db.Column(db.Integer)
+    line_no = db.Column(db.Integer)
+    message = db.Column(db.String(512))
+    module = db.Column(db.String(256))
+    name = db.Column(db.String(256))
+    pathname = db.Column(db.String(256))
+    process = db.Column(db.Integer)
+    process_name = db.Column(db.String(256))
+    relative_created = db.Column(db.Float)
+    stack_info = db.Column(db.String(256))
+    thread = db.Column(db.Integer)
+    thread_name = db.Column(db.String(256))
+    time_collected = db.Column(db.DateTime, default=datetime.datetime.now)
+    run_uuid = db.Column(db.String(32), db.ForeignKey('run.uuid'))
 
-    def __init__(self, value):
-        self.value = str(value)
 
 # Setup Flask-Security
 user_datastore = SQLAlchemyUserDatastore(db, User, Role)
@@ -274,23 +312,31 @@ def register():
 
 
 @app.route('/')
+@login_required
 def index():
     return render_template('index.html')
+    # return render_template('scrapers.html')
 
-
+###############################################################################
+###############################################################################
+##
+##                Manage Scrapers
+##
+###############################################################################
+###############################################################################
 ###
 # Api Key Routes
 ###
 @socketio.on('connect', namespace='/manage/apikeys')
-def connect_apikeys():
+def connect_manage_apikeys():
     apikeys = ApiKey.query.filter_by(user_id=current_user.id).all()
     apikeys = [i.serialize for i in apikeys]
-    emit('apikeys', {'data': apikeys, 'action': 'add'})
+    emit('manage-apikeys', {'data': apikeys, 'action': 'add'})
 
 
 @app.route('/manage/apikeys', methods=['GET', 'POST'])
 @login_required
-def apikeys():
+def manage_apikeys():
     logger.info("Api Keys page with type {}".format(request.method))
     if request.method == 'POST':
         rdata = {'success': False,
@@ -305,7 +351,7 @@ def apikeys():
             db.session.add(apikey)
             db.session.commit()
             data = [apikey.serialize]
-            socketio.emit('apikeys',
+            socketio.emit('manage-apikeys',
                           {'data': data, 'action': 'add'},
                           namespace='/manage/apikeys'
                           )
@@ -318,14 +364,14 @@ def apikeys():
 
 @app.route('/manage/apikeys/delete/<int:apikey_id>', methods=['GET'])
 @login_required
-def apikey_delete(apikey_id):
+def manage_apikey_delete(apikey_id):
     apikey = ApiKey.query.filter_by(user_id=current_user.id)\
                          .filter_by(id=apikey_id).scalar()
     db.session.delete(apikey)
     db.session.commit()
     logger.info("User {} deleted API Key {}".format(current_user, apikey.name))
     data = [apikey.serialize]
-    socketio.emit('apikeys',
+    socketio.emit('manage-apikeys',
                   {'data': data, 'action': 'delete'},
                   namespace='/manage/apikeys'
                   )
@@ -336,15 +382,15 @@ def apikey_delete(apikey_id):
 # Sensor Routes
 ###
 @socketio.on('connect', namespace='/manage/scrapers')
-def connect_scrapers():
+def connect_manage_scrapers():
     scrapers = Scraper.query.filter_by(user_id=current_user.id).all()
     scrapers = [i.serialize for i in scrapers]
-    emit('scrapers', {'data': scrapers, 'action': 'add'})
+    emit('manage-scrapers', {'data': scrapers, 'action': 'add'})
 
 
 @app.route('/manage/scrapers', methods=['GET', 'POST'])
 @login_required
-def scrapers():
+def manage_scrapers():
     if request.method == 'POST':
         rdata = {'success': False,
                  'message': '',
@@ -372,7 +418,7 @@ def scrapers():
             logger.info("User {} created scraper {} - {}"
                         .format(current_user.email, scraper.key, scraper.name))
             data = [scraper.serialize]
-            socketio.emit('scrapers',
+            socketio.emit('manage-scrapers',
                           {'data': data, 'action': 'add'},
                           namespace='/manage/scrapers'
                           )
@@ -388,14 +434,14 @@ def scrapers():
 
 @app.route('/manage/scrapers/delete/<int:scraper_id>', methods=['GET'])
 @login_required
-def scraper_delete(scraper_id):
+def manage_scraper_delete(scraper_id):
     scraper = Scraper.query.filter_by(user_id=current_user.id).filter_by(id=scraper_id).scalar()
     db.session.delete(scraper)
     db.session.commit()
     logger.info("User {} deleted scraper {} - {}"
                 .format(current_user.email, scraper.key, scraper.name))
     data = [scraper.serialize]
-    socketio.emit('scrapers',
+    socketio.emit('manage-scrapers',
                   {'data': data, 'action': 'delete'},
                   namespace='/manage/scrapers'
                   )
@@ -406,15 +452,15 @@ def scraper_delete(scraper_id):
 # Group Routes
 ###
 @socketio.on('connect', namespace='/manage/groups')
-def connect_groups():
+def connect_manage_groups():
     groups = Group.query.filter_by(user_id=current_user.id).all()
     groups = [i.serialize for i in groups]
-    emit('groups', {'data': groups, 'action': 'add'})
+    emit('manage-groups', {'data': groups, 'action': 'add'})
 
 
 @app.route('/manage/groups', methods=['GET', 'POST'])
 @login_required
-def groups():
+def manage_groups():
     if request.method == 'POST':
         rdata = {'success': False,
                  'message': '',
@@ -438,7 +484,7 @@ def groups():
                 logger.info("User {} created group {}"
                             .format(current_user.email, group.name))
                 data = [group.serialize]
-                socketio.emit('groups',
+                socketio.emit('manage-groups',
                               {'data': data, 'action': 'add'},
                               namespace='/manage/groups'
                               )
@@ -451,22 +497,50 @@ def groups():
 
 @app.route('/manage/groups/delete/<int:group_id>', methods=['GET'])
 @login_required
-def group_delete(group_id):
+def manage_group_delete(group_id):
     group = Group.query.filter_by(user_id=current_user.id).filter_by(id=group_id).scalar()
     db.session.delete(group)
     db.session.commit()
     logger.info("User {} deleted group {}"
                 .format(current_user.email, group.name))
     data = [group.serialize]
-    socketio.emit('groups',
+    socketio.emit('manage-groups',
                   {'data': data, 'action': 'delete'},
                   namespace='/manage/groups'
                   )
     return jsonify({'message': "Deleted Group " + group.name})
 
 
+###############################################################################
+###############################################################################
+##
+##                Scraper Run Data
+##
+###############################################################################
+###############################################################################
+
+@socketio.on('connect', namespace='/data/scrapers')
+def connect_data_scrapers():
+    # scrapers = Scraper.query.filter_by(user_id=current_user.id).all()
+    scrapers = ScraperRun.query.filter_by(stop_time=None).all()
+    scrapers = [i.serialize for i in scrapers]
+    emit('data-scrapers', {'data': scrapers, 'action': 'add'})
+
+
+@app.route('/data/scrapers', methods=['GET'])
+@login_required
+def data_scrapers():
+    return render_template('data/scrapers.html')
+
+###############################################################################
+###############################################################################
+##
+##                Scraper API
+##
+###############################################################################
+###############################################################################
 #######################
-# API Method Decorators
+# API Decorators
 #######################
 def authenticate_api(func):
     @wraps(func)
@@ -497,12 +571,12 @@ def validate_api_scraper_key(func):
         try:
             user_id = None
             api_key = request.args['apikey']
-            if 'scraper_key' in request.args:
-                scraper_key = request.args['scraper_key']
+            if 'scraperKey' in request.args:
+                scraper_key = request.args['scraperKey']
                 # Check that the apikey has acccess to the sensor
                 user_id = Scraper.query.filter_by(key=scraper_key).scalar().user_id
             else:
-                rdata['message'] = "Missing sensor key"
+                rdata['message'] = "Missing scraper key"
                 return rdata
 
             key_user_id = ApiKey.query.filter_by(key=api_key).scalar().user_id
@@ -526,55 +600,120 @@ def validate_api_scraper_key(func):
 #######################
 # API Endpoints
 #######################
-class APIAddScraperData(Resource):
+class APIScraperLogging(Resource):
     method_decorators = [validate_api_scraper_key, authenticate_api]
 
-    def get(self):
+    def post(self):
         rdata = {'success': False,
                  'message': ""
                  }
-        try:
-            scraper_key = request.args['scraper_key']
-            value = request.args['value']
-            # Add sensor data to db
-            # scraper = Sensor.query.filter_by(key=sensor_key).scalar()
-            # sensor_data = SensorData(value)
-            # sensor_data.sensor = sensor
+        # pprint(request.args)
+        # pprint(request.form)
+        client_data = request.args
+        log_data = request.form
 
-            # db.session.add(sensor_data)
-            # db.session.commit()
+        log = ScraperLog()
+        log.run_uuid = client_data['scraperRun']
+        log.exc_info = log_data['exc_info']
+        log.exc_text = log_data['exc_text']
+        log.filename = log_data['filename']
+        log.func_name = log_data['funcName']
+        log.level_name = log_data['levelname']
+        log.level_no = log_data['levelno']
+        log.line_no = log_data['lineno']
+        log.message = log_data['message']
+        log.module = log_data['module']
 
-            socketio.emit('scrapedData',
-                          {'scraper_key': scraper_key, 'value': value},
-                          namespace='/scrapedData'
-                          )
-            rdata['success'] = True
-        except KeyError:
-            logger.info("You are missing the key/value")
-            rdata['message'] = "You are missing the key/value"
-        except Exception:
-            logger.exception("[APIAddSensorData GET] Oops, something went wrong")
-            rdata['message'] = "Oops, something went wrong"
+        db.session.add(log)
+
+        db.session.commit()
+
+        rdata['success'] = True
+        rdata['message'] = ""
 
         return rdata
+
+
+class APIScraperDataStart(Resource):
+    method_decorators = [validate_api_scraper_key, authenticate_api]
 
     def post(self):
         rdata = {'success': False,
                  'message': ""
                  }
 
-        rdata['success'] = False
-        rdata['message'] = "Currently not supported"
+        client_data = request.args
+        data = request.json
+
+        run = ScraperRun()
+        run.scraper_key = client_data['scraperKey']
+        run.uuid = client_data['scraperRun']
+        run.start_time = data['startTime']
+
+        db.session.add(run)
+        db.session.commit()
+
+        # Tie to a websocket
+        data = [run.serialize]
+        socketio.emit('data-scrapers',
+                      {'data': data, 'action': 'add'},
+                      namespace='/data/scrapers'
+                      )
+
+        rdata['success'] = True
+        rdata['message'] = ""
 
         return rdata
 
-api.add_resource(APIAddScraperData, '/add/group')
+
+class APIScraperDataStop(Resource):
+    method_decorators = [validate_api_scraper_key, authenticate_api]
+
+    def post(self):
+        rdata = {'success': False,
+                 'message': ""
+                 }
+
+        client_data = request.args
+        data = request.json
+
+        run = ScraperRun.query.filter_by(uuid=client_data['scraperRun']).scalar()
+        run.stop_time = datetime.datetime.strptime(data['stopTime'], "%Y-%m-%d %H:%M:%S.%f")
+        # Calc runtime and get counts
+        runtime = run.stop_time - run.start_time
+        run.runtime = runtime.total_seconds()
+
+        counts = ScraperLog.query.filter_by(run_uuid=client_data['scraperRun'])
+        run.critical_count = counts.filter_by(level_name='CRITICAL').count()
+        run.error_count = counts.filter_by(level_name='ERROR').count()
+        run.warning_count = counts.filter_by(level_name='WARNING').count()
+
+        db.session.commit()
+
+        data = [run.serialize]
+        socketio.emit('data-scrapers',
+                      {'data': data, 'action': 'add'},
+                      namespace='/data/scrapers'
+                      )
+
+        # Tie to a web socket
+
+        rdata['success'] = True
+        rdata['message'] = ""
+
+        return rdata
+
+api.add_resource(APIScraperLogging, '/logs')
+api.add_resource(APIScraperDataStart, '/data/start')
+api.add_resource(APIScraperDataStop, '/data/stop')
 
 
 #######################
 # App Utils
 #######################
 def datetime_to_str(timestamp):
+    if timestamp is None:
+        return None
     # The script is set to use UTC, so all times are in UTC
     return timestamp.isoformat() + "+0000"
 
