@@ -1,63 +1,65 @@
+_.templateSettings = {interpolate: /\{\{(.+?)\}\}/g};
+
 $(document).ready(function(){
     $('#tbl-manage-apikeys').DataTable({
         aaSorting: [ [1, 'asc']],
         columnDefs: [
-            { "visible": false, "targets": 0 }  // Hide the id column
+            { "visible": false, "targets": 0 }  // Hide the rowId column
         ],
         columns: [
-            { data: 'id' },
+            { data: 'rowId' },
             { data: 'name' },
             { data: 'key' },
             { data: 'host' },
-            { data: 'time_added' },
+            { data: 'timeAdded' },
             { data: 'action' },
         ],
         fnRowCallback: function( nRow, aData, iDisplayIndex, iDisplayIndexFull ){
             // Add the apikey id as an id for the row
-            $(nRow).attr('id', 'jdt-' + aData.id);
+            $(nRow).attr('id', 'jdt-' + aData.rowId);
         },
     });
     $('#tbl-manage-scrapers').DataTable({
         aaSorting: [ [1, 'asc'], [2, 'asc'] ],
         columnDefs: [
-            { "visible": false, "targets": 0 }  // Hide the id column
+            { "visible": false, "targets": 0 }  // Hide the rowId column
         ],
         columns: [
-            { data: 'id' },
+            { data: 'rowId' },
             { data: 'group' },
             { data: 'name' },
             { data: 'owner' },
             { data: 'key' },
-            { data: 'time_added' },
+            { data: 'timeAdded' },
             { data: 'action' },
         ],
         fnRowCallback: function( nRow, aData, iDisplayIndex, iDisplayIndexFull ){
             // Add the apikey id as an id for the row
-            $(nRow).attr('id', 'jdt-' + aData.id);
+            $(nRow).attr('id', 'jdt-' + aData.rowId);
         },
     });
     $('#tbl-manage-groups').DataTable({
         aaSorting: [ [1, 'asc']],
         columnDefs: [
-            { "visible": false, "targets": 0 }  // Hide the id column
+            { "visible": false, "targets": 0 }  // Hide the rowId column
         ],
         columns: [
-            { data: 'id' },
+            { data: 'rowId' },
             { data: 'name' },
             { data: 'action' },
         ],
         fnRowCallback: function( nRow, aData, iDisplayIndex, iDisplayIndexFull ){
             // Add the apikey id as an id for the row
-            $(nRow).attr('id', 'jdt-' + aData.id);
+            $(nRow).attr('id', 'jdt-' + aData.rowId);
         },
     });
     $('#tbl-data-scrapers').DataTable({
-        aaSorting: [ [1, 'asc'], [2, 'asc'] ],
+        aaSorting: [ [3, 'asc'] ],
         columnDefs: [
-            { "visible": false, "targets": 0 }  // Hide the id column
+            { "visible": false, "targets": 0 }  // Hide the rowId column
         ],
         columns: [
-            { data: 'id' },
+            { data: 'rowId' },
             { data: 'uuid' },
             { data: 'name' },
             { data: 'startTime' },
@@ -69,7 +71,7 @@ $(document).ready(function(){
         ],
         fnRowCallback: function( nRow, aData, iDisplayIndex, iDisplayIndexFull ){
             // Add the apikey id as an id for the row
-            $(nRow).attr('id', 'jdt-' + aData.id);
+            $(nRow).attr('id', 'jdt-' + aData.rowId);
         },
     });
 
@@ -97,7 +99,11 @@ $(document).ready(function(){
     if( socket_listen !== null ){
         socket.on(socket_listen, function( data ){
                 console.log("WebSocket: ", data);
-                addToTable(data);
+                if( page === '/data/scrapers' ){
+                    addToScraperList(data)
+                }else{
+                    addToTable(data);
+                }
         })
     }
     if( $form !== null ){
@@ -122,25 +128,72 @@ var socket_listen = null;
 var $form = null;
 var cb = null;
 
+var _template = {
+    runningScraper: _.template(
+                        '<div id="{{rowId}}" class="running scraper">' +
+                            '<span class="uuid">UUID: <span class="value">{{uuid}}</span></span><br />' +
+                            '<span class="name">Name: <span class="value">{{name}}</span></span><br />' +
+                            '<span class="startTime">Start: <span class="value">{{startTime}}</span></span><br />' +
+                            '<span class="stopTime">Stop: <span class="value">{{stopTime}}</span></span><br />' +
+                            '<span class="runtime">Runtime: <span class="value">{{runtime}}</span></span><br />' +
+                            '<span class="criticalCount">Crits: <span class="value">{{criticalCount}}</span></span><br />' +
+                            '<span class="errorCount">Err: <span class="value">{{errorCount}}</span></span><br />' +
+                            '<span class="warningCount">Warn: <span class="value">{{warningCount}}</span></span><br />' +
+                        '</div>'
+                    ),
+}
+
+function addToScraperList( response ){
+    var action = response.action;
+    var data = response.data;
+    var $running = $('#running');
+    var $finished = $('#finished');
+    $.each( data, function( i, scraper ){
+        // Check to see if scraper run exists in $running
+        var $scraperRun = $running.find('#'+scraper.rowId);
+
+        // Not in running list so add it
+        if( action === 'add' ){
+            $running.append(_template.runningScraper(scraper));
+        }else if( action === 'update' || action === 'increment' ){
+            // Update the values
+            $.each( scraper, function( field, value ){
+                var $field = $scraperRun.find('.' + field).find('.value');
+                if( action === 'increment' ){
+                    var currVal = parseInt($field.text());
+                    value = currVal + value;
+                }
+                $field.html(value);
+            });
+
+            // Check if stopTime is not null, if null move to $finished with updated content
+            if( typeof scraper.stopTime !== 'undefined'){
+                console.log("Move bitch");
+                $scraperRun.appendTo($finished);
+            }
+        }
+    });
+}
+
 function addToTable( response ){
     var table = $('#tbl-' + socket_listen).DataTable();
     var action = response.action;
     var rows = response.data;
     $.each( rows, function( i, rowData ){
-        var rowId = table.row('[id=jdt-' + rowData.id + ']').index();
-        if( action === 'update' || action === 'add'){
-            rowData.action = '<button class="btn-del" data-id="' + rowData.id + '">Delete</button>'
-            rowData.time_added = moment(rowData.time_added).format("YYYY-MM-DD HH:mm")
+        var dtRowId = table.row('[id=jdt-' + rowData.rowId + ']').index();
+        if( action === 'update' || action === 'add' || action === 'increment'){
+            rowData.action = '<button class="btn-del" data-id="' + rowData.rowId + '">Delete</button>'
+            rowData.timeAdded = moment(rowData.timeAdded).format("YYYY-MM-DD HH:mm")
             rowData.startTime = moment(rowData.startTime).format("YYYY-MM-DD HH:mm:ss")
             rowData.stopTime = moment(rowData.stopTime).format("YYYY-MM-DD HH:mm:ss")
-            if( rowId >= 0 ){
-                table.row(rowId).data(rowData).draw();
+            if( dtRowId >= 0 ){
+                table.row(dtRowId).data(rowData).draw();
             }else{
                 table.row.add(rowData).draw();
             }
         }else if( action === 'delete' ){
-            if( rowId >= 0 ){
-                table.row(rowId).remove().draw();
+            if( dtRowId >= 0 ){
+                table.row(dtRowId).remove().draw();
             }
         }
     });

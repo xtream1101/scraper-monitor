@@ -126,10 +126,11 @@ class ApiKey(db.Model):
     def serialize(self):
         """Return object data in easily serializeable format"""
         return {'id': self.id,
+                'rowId': self.id,
                 'name': self.name,
                 'host': self.host,
                 'key': self.key,
-                'time_added': datetime_to_str(self.time_added),
+                'timeAdded': datetime_to_str(self.time_added),
                 }
 
 
@@ -148,6 +149,7 @@ class Group(db.Model):
     def serialize(self):
         """Return object data in easily serializeable format"""
         return {'id': self.id,
+                'rowId': self.id,
                 'name': self.name,
                 }
 
@@ -183,11 +185,12 @@ class Scraper(db.Model):
             group = group.serialize
             group = group['name']
         return {'id': self.id,
+                'rowId': self.id,
                 'name': self.name,
                 'owner': self.owner,
                 'key': self.key,
                 'group': group,
-                'time_added': datetime_to_str(self.time_added),
+                'timeAdded': datetime_to_str(self.time_added),
                 }
 
 
@@ -199,9 +202,9 @@ class ScraperRun(db.Model):
     start_time = db.Column(db.DateTime)
     stop_time = db.Column(db.DateTime)
     runtime = db.Column(db.Float)
-    critical_count = db.Column(db.Integer)
-    error_count = db.Column(db.Integer)
-    warning_count = db.Column(db.Integer)
+    critical_count = db.Column(db.Integer, default=0)
+    error_count = db.Column(db.Integer, default=0)
+    warning_count = db.Column(db.Integer, default=0)
     scraper_key = db.Column(db.String(32), db.ForeignKey('scraper.key'))
     scraper_logs = db.relationship('ScraperLog', backref='scraper',
                                    cascade='all, delete', lazy='dynamic')
@@ -215,6 +218,7 @@ class ScraperRun(db.Model):
         if scraper is not None:
             scraper = scraper.serialize
         return {'id': self.id,
+                'rowId': self.uuid,
                 'uuid': self.uuid,
                 'name': scraper['name'],
                 'startTime': datetime_to_str(self.start_time),
@@ -625,8 +629,20 @@ class APIScraperLogging(Resource):
         log.module = log_data['module']
 
         db.session.add(log)
-
         db.session.commit()
+
+        data = [{'rowId': client_data['scraperRun']}]
+        if log.level_name == 'CRITICAL':
+            data[0]['criticalCount'] = 1
+        if log.level_name == 'ERROR':
+            data[0]['errorCount'] = 1
+        if log.level_name == 'WARNING':
+            data[0]['warningCount'] = 1
+
+        socketio.emit('data-scrapers',
+                      {'data': data, 'action': 'increment'},
+                      namespace='/data/scrapers'
+                      )
 
         rdata['success'] = True
         rdata['message'] = ""
@@ -653,7 +669,6 @@ class APIScraperDataStart(Resource):
         db.session.add(run)
         db.session.commit()
 
-        # Tie to a websocket
         data = [run.serialize]
         socketio.emit('data-scrapers',
                       {'data': data, 'action': 'add'},
@@ -692,11 +707,9 @@ class APIScraperDataStop(Resource):
 
         data = [run.serialize]
         socketio.emit('data-scrapers',
-                      {'data': data, 'action': 'add'},
+                      {'data': data, 'action': 'update'},
                       namespace='/data/scrapers'
                       )
-
-        # Tie to a web socket
 
         rdata['success'] = True
         rdata['message'] = ""
