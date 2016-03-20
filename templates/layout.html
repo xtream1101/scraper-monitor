@@ -5,57 +5,53 @@
 		<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
 		<meta charset="utf-8">
 
-		<link href="/static/css/bootstrap.css" rel="stylesheet">
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+		<link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
 		<link href="/static/css/jquery.dataTables.min.css" rel="stylesheet">
 		<link href="/static/css/styles.css" rel="stylesheet">
 	</head>
 	<body>
 
-		<div class="navbar navbar-inverse navbar-fixed-top">
-			<div class="navbar-inner">
-				<div class="container">
-					<button type="button" class="btn btn-navbar" data-toggle="collapse"
-						data-target=".nav-collapse">
-						<span class="icon-bar"></span> <span class="icon-bar"></span> <span
-							class="icon-bar"></span>
-					</button>
-					<a class="brand" href="/">Scraper Monitor</a>
-					<div class="nav-collapse collapse">
-						<ul class="nav">
-							<li class="active"><a href="/">Home</a></li>
-							{% if current_user.is_authenticated%}
-								<li><a href="{{ url_for('manage_groups') }}">m/Groups</a></li>
-								<li><a href="{{ url_for('manage_scrapers') }}">m/Scrapers</a></li>
-								<li><a href="{{ url_for('manage_apikeys') }}">m/API Keys</a></li>
-								<li><a href="{{ url_for('data_scrapers') }}">d/Scrapers</a></li>
-								<li><a href="{{ url_for('security.logout') }}">Logout</a></li>
-							{% else %}
-								<li><a href="{{ url_for('security.login') }}">Login</a></li>
-							{% endif %}
-							{% if current_user.has_role('admin') %}
-							<li><a href="/admin">Admin</a></li>
-							{% endif %}
-						</ul>
-					</div>
-					<!--/.nav-collapse -->
-				</div>
+		<div class="nav-side-menu">
+			<div class="brand">Scraper Monitor</div>
+			<i class="fa fa-bars fa-2x toggle-btn" data-toggle="collapse" data-target="#menu-content"></i>
+			<div class="menu-list">
+				<ul id="menu-content" class="menu-content collapse out">
+					<li>
+						<a href="/"><i class="fa fa-dashboard fa-lg"></i> Dashboard</a>
+					</li>
+
+					{% if current_user.is_authenticated%}
+					<li data-toggle="collapse" data-target="#manage" class="sub-menu-header">
+						<a href="#"><i class="fa fa-gift fa-lg"></i> Manage Scrapers <span class="arrow"></span></a>
+					</li>
+					<ul class="sub-menu collapse" id="manage">
+						<li id="menu-manage-1" class="sub-menu-item"><a href="{{ url_for('manage_groups') }}">Groups</a></li>
+						<li id="menu-manage-2" class="sub-menu-item"><a href="{{ url_for('manage_scrapers') }}">Scrapers</a></li>
+						<li id="menu-manage-3" class="sub-menu-item"><a href="{{ url_for('manage_apikeys') }}">API Keys</a></li>
+					</ul>
+					<li data-toggle="collapse" data-target="#data" class="sub-menu-header">
+						<a href="#"><i class="fa fa-gift fa-lg"></i> Scraper Data <span class="arrow"></span></a>
+					</li>
+					<ul class="sub-menu collapse" id="data">
+						<li id="menu-data-1" class="sub-menu-item"><a href="{{ url_for('data_scrapers') }}">Scrapers</a></li>
+					</ul>
+					<li><a href="#"><i class="fa fa-user fa-lg"></i> Profile</a></li>
+					<li><a href="{{ url_for('security.logout') }}">Logout</a></li>
+					{% else %}
+					<li><a href="{{ url_for('security.login') }}">Login</a></li>
+					{% endif %}
+
+					{% if current_user.has_role('admin') %}
+						<li><a href="/admin">Admin</a></li>
+					{% endif %}
+				</ul>
 			</div>
 		</div>
-
-		<div id="main" class="container">
-			{% with messages = get_flashed_messages() %}
-			{% if messages %}
-				<div class="alert">
-					<ul class="flashes">
-					{% for message in messages %}
-						<li>{{ message }}</li>
-					{% endfor %}
-					</ul>
-				</div>
-			{% endif %}
-			{% endwith %}
-
-			{% block body %}{% endblock %}
+		<div id="content">
+			<div id="inner">
+				{% block body %}{% endblock %}
+			</div>
 			<hr>
 			<footer id="footer">
 				<p>&copy; Eddy Hintze 2016</p>		
@@ -63,10 +59,12 @@
 		</div>
 
 		<script type="text/javascript" src="/static/js/jquery.min.js"></script>
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
 		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
 		<script type="text/javascript" src="/static/js/jquery.dataTables.1.10.10.min.js"></script>
 		<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js"></script>
 		<script type="text/javascript" src="/static/js/moment.min.js"></script>
+		<script type="text/javascript" src="/static/js/datatable.js"></script>
 		<script type="text/javascript" src="/static/js/init.js"></script>
 
 	</body>
