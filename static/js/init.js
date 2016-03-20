@@ -2,17 +2,27 @@
 
 _.templateSettings = {interpolate: /\{\{(.+?)\}\}/g};
 
+var page = window.location.pathname;
+var url = window.location.origin + page;
+
 var _template = {
-    runningScraper: _.template(
-        '<div id="{{rowId}}" class="running scraper">' +
-            '<span class="uuid">UUID: <span class="value">{{uuid}}</span></span><br />' +
-            '<span class="name">Name: <span class="value">{{name}}</span></span><br />' +
-            '<span class="startTime">Start: <span class="value">{{startTime}}</span></span><br />' +
-            '<span class="stopTime">Stop: <span class="value">{{stopTime}}</span></span><br />' +
-            '<span class="runtime">Runtime: <span class="value">{{runtime}}</span></span><br />' +
-            '<span class="criticalCount">Crits: <span class="value">{{criticalCount}}</span></span><br />' +
-            '<span class="errorCount">Err: <span class="value">{{errorCount}}</span></span><br />' +
-            '<span class="warningCount">Warn: <span class="value">{{warningCount}}</span></span><br />' +
+    scraperRun: _.template(
+        '<div id="run-{{rowId}}" class="scraper-run">' +
+            '<span class="uuid"><span class="value">{{uuid}}</span></span>  | ' +
+            '<span class="startTime"><span class="value">{{startTime}}</span></span>  | ' +
+            '<span class="stopTime"><span class="value">{{stopTime}}</span></span>  | ' +
+            '<span class="runtime"><span class="value">{{runtime}}</span></span>  | ' +
+            '<span class="criticalCount"><span class="value">{{criticalCount}}</span></span>  | ' +
+            '<span class="errorCount"><span class="value">{{errorCount}}</span></span>  | ' +
+            '<span class="warningCount"><span class="value">{{warningCount}}</span></span>' +
+        '</div>'
+    ),
+    scraperParent: _.template(
+        '<div id="{{scraperKey}}" class="scraper-parent {{runClass}}">' +
+            '<b><span class="name">Scraper: <span class="value">{{name}}</span></span> | ' +
+            '<span class="key">Key: <span class="value">{{scraperKey}}</span></span></b><br />' +
+            '<div class="runs"></div>' +
+            
         '</div>'
     ),
     deleteBtn: _.template('<button class="btn-del" data-id="{{rowId}}">Delete</button>'),
@@ -37,8 +47,6 @@ $(function(){
 function initPage(){
     var $form = null;
     var socketListen = null;
-    var page = window.location.pathname;
-    var url = window.location.origin + page;
     var socket = io.connect( url );
 
     if( page === '/manage/apikeys' ){
@@ -58,7 +66,7 @@ function initPage(){
         socket.on(socketListen, function( data ){
             console.log("WebSocket: ", data);
             if( page === '/data/scrapers' ){
-                addToScraperList(data)
+                addScraperRunning(data)
             }else{
                 addToTable(data, socketListen);
             }
@@ -92,20 +100,27 @@ function setActiveMenuItem(){
     $menuHeader.addClass('active');
 }
 
-function addToScraperList( response ){
+function addScraperRunning( response ){
     var action = response.action;
     var data = response.data;
     var $running = $('#running');
-    var $finished = $('#finished');
+    
 
     $.each( data, function( i, scraper ){
-        // Check to see if scraper run exists in $running
-        var $scraperRun = $running.find('#'+scraper.rowId);
-
-        // Not in running list so add it
         if( action === 'add' ){
-            $running.append(_template.runningScraper(scraper));
+            // Not in running list so add it
+            // Check if scraper run has a scraper parent in $running
+            var scraperParentIdent = '#' + scraper.scraperKey + '.running';
+            if( $(scraperParentIdent).length === 0 ){
+                scraper.runClass = 'running';
+                $running.append(_template.scraperParent(scraper));
+            }
+            var $scraperParent = $(scraperParentIdent).find('.runs');
+            // Add scraper run to parent in $running
+            $scraperParent.append(_template.scraperRun(scraper));
+
         }else if( action === 'update' || action === 'increment' ){
+            var $scraperRun = $running.find('#run-' + scraper.rowId);
             // Update the values
             $.each( scraper, function( field, value ){
                 var $field = $scraperRun.find('.' + field).find('.value');
@@ -116,12 +131,29 @@ function addToScraperList( response ){
                 $field.html(value);
             });
 
-            // Check if stopTime is not null, if null move to $finished with updated content
+            // Check if stopTime exists, if so move out of $running
             if( typeof scraper.stopTime !== 'undefined'){
-                $scraperRun.appendTo($finished);
+                if( $scraperRun.siblings().length === 0 ){
+                    console.log("Remove scraper parent")
+                    // scraper parent is empty in $running
+                }
+                addScraperFinished($scraperRun, scraper);
+
             }
         }
     });
+}
+
+function addScraperFinished( $scraperRun, scraper ){
+    var $finished = $('#finished');
+    var scraperParentIdent = '#' + scraper.scraperKey + '.finished';
+    if( $(scraperParentIdent).length === 0 ){
+        scraper.runClass = 'finished';
+        $finished.append(_template.scraperParent(scraper));
+    }
+    var $scraperParent = $(scraperParentIdent).find('.runs');
+    // Add scraper run to parent in $finished
+    $scraperParent.append($scraperRun);
 }
 
 function addToTable( response, tableName ){

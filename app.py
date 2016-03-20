@@ -221,6 +221,7 @@ class ScraperRun(db.Model):
                 'rowId': self.uuid,
                 'uuid': self.uuid,
                 'name': scraper['name'],
+                'scraperKey': self.scraper_key,
                 'startTime': datetime_to_str(self.start_time),
                 'stopTime': datetime_to_str(self.stop_time),
                 'runtime': self.runtime,
