@@ -2,6 +2,9 @@
 
 _.templateSettings = {interpolate: /\{\{(.+?)\}\}/g};
 
+var page = window.location.pathname;
+var url = window.location.origin + page;
+
 var _template = {
     runningScraper: _.template(
         '<div id="{{rowId}}" class="running scraper">' +
@@ -37,8 +40,6 @@ $(function(){
 function initPage(){
     var $form = null;
     var socketListen = null;
-    var page = window.location.pathname;
-    var url = window.location.origin + page;
     var socket = io.connect( url );
 
     if( page === '/manage/apikeys' ){
