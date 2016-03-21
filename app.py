@@ -15,8 +15,9 @@ from flask.ext.admin import Admin
 from flask.ext.admin.contrib import sqla
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.restful import Resource, Api, abort
+from flask.ext.security.forms import RegisterForm, LoginForm, StringField, Required, unique_user_email
 from sqlalchemy.ext.declarative import declared_attr, declarative_base
-from flask import Flask, render_template, request, flash, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 from flask.ext.security import current_user, login_required, RoleMixin, Security, \
     SQLAlchemyUserDatastore, UserMixin, utils
 
@@ -47,6 +48,7 @@ logger = logging.getLogger(__name__)
 # Create Flask application
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
+app.config['SECURITY_USER_IDENTITY_ATTRIBUTES'] = ['email', 'username']
 
 api = Api(app, prefix='/api/v1')
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -68,16 +70,27 @@ def generate_key(id, salt, size=8):
     return hashids.encode(id)
 
 # Define models
+# TODO: make a config value
+SCHEMA = 'scraper_monitor'
+
 roles_users = db.Table(
     'roles_users',
-    db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
-    db.Column('role_id', db.Integer, db.ForeignKey('role.id'))
+    db.Column('user_id', db.Integer, db.ForeignKey(SCHEMA + '.user.id')),
+    db.Column('role_id', db.Integer, db.ForeignKey(SCHEMA + '.role.id')),
+    schema='scraper_monitor',
+)
+
+organizations_users = db.Table(
+    'organizations_users',
+    db.Column('user_id', db.Integer, db.ForeignKey(SCHEMA + '.user.id')),
+    db.Column('organization_id', db.Integer, db.ForeignKey(SCHEMA + '.organization.id')),
+    schema='scraper_monitor',
 )
 
 
 class Role(db.Model, RoleMixin):
-    # __tablename__ = 'role'
-    # __table_args__ = {'schema': 'scraper_monitor'}
+    __tablename__ = 'role'
+    __table_args__ = {'schema': SCHEMA}
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), unique=True)
     description = db.Column(db.String(255))
@@ -87,10 +100,12 @@ class Role(db.Model, RoleMixin):
 
 
 class User(db.Model, UserMixin):
-    # __tablename__ = 'user'
+    __tablename__ = 'user'
+    __table_args__ = {'schema': SCHEMA}
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(255))
     last_name = db.Column(db.String(255))
+    username = db.Column(db.String(255), unique=True)
     email = db.Column(db.String(255), unique=True)
     password = db.Column(db.String(255))
     active = db.Column(db.Boolean())
@@ -103,20 +118,31 @@ class User(db.Model, UserMixin):
                                lazy='dynamic')
     groups = db.relationship('Group', backref='user', cascade='all, delete',
                              lazy='dynamic')
+    organizations = db.relationship('Organization', secondary=organizations_users,
+                                    back_populates='users')
 
     def __str__(self):
-        return self.email
+        return self.username
+
+
+class Organization(db.Model):
+    __tablename__ = 'organization'
+    __table_args__ = {'schema': SCHEMA}
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64))
+    users = db.relationship('User', secondary=organizations_users,
+                            back_populates='organizations')
 
 
 class ApiKey(db.Model):
     __tablename__ = 'apikey'
-    # __table_args__ = {'schema': 'scraper_monitor'}
+    __table_args__ = {'schema': SCHEMA}
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64))
     host = db.Column(db.String(255))
     key = db.Column(db.String(36), default=generate_uid, unique=True)
     time_added = db.Column(db.DateTime, default=datetime.datetime.now)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.user.id'))
 
     def __init__(self, name, host):
         self.name = name
@@ -136,10 +162,10 @@ class ApiKey(db.Model):
 
 class Group(db.Model):
     __tablename__ = 'group'
-    # __table_args__ = {'schema': 'scraper_monitor'}
+    __table_args__ = {'schema': SCHEMA}
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64))
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.user.id'))
     scrapers = db.relationship('Scraper', backref='group', lazy='dynamic')
 
     def __init__(self, name):
@@ -156,14 +182,14 @@ class Group(db.Model):
 
 class Scraper(db.Model):
     __tablename__ = 'scraper'
-    # __table_args__ = {'schema': 'scraper_monitor'}
+    __table_args__ = {'schema': SCHEMA}
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64))
     owner = db.Column(db.String(64))
     key = db.Column(db.String(32), unique=True)
     time_added = db.Column(db.DateTime, default=datetime.datetime.now)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    group_id = db.Column(db.Integer, db.ForeignKey('group.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.user.id'))
+    group_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.group.id'))
     scraper_runs = db.relationship('ScraperRun', backref='scraper',
                                    cascade='all, delete-orphan', lazy='dynamic')
 
@@ -196,7 +222,7 @@ class Scraper(db.Model):
 
 class ScraperRun(db.Model):
     __tablename__ = 'run'
-    # __table_args__ = {'schema': 'scraper_monitor'}
+    __table_args__ = {'schema': SCHEMA}
     id = db.Column(db.Integer, primary_key=True)
     uuid = db.Column(db.String(32), unique=True)
     start_time = db.Column(db.DateTime)
@@ -205,7 +231,7 @@ class ScraperRun(db.Model):
     critical_count = db.Column(db.Integer, default=0)
     error_count = db.Column(db.Integer, default=0)
     warning_count = db.Column(db.Integer, default=0)
-    scraper_key = db.Column(db.String(32), db.ForeignKey('scraper.key'))
+    scraper_key = db.Column(db.String(32), db.ForeignKey(SCHEMA + '.scraper.key'))
     scraper_logs = db.relationship('ScraperLog', backref='scraper',
                                    cascade='all, delete', lazy='dynamic')
 
@@ -233,7 +259,7 @@ class ScraperRun(db.Model):
 
 class ScraperLog(db.Model):
     __tablename__ = 'run_log'
-    # __table_args__ = {'schema': 'scraper_monitor'}
+    __table_args__ = {'schema': SCHEMA}
     id = db.Column(db.Integer(), primary_key=True)
     exc_info = db.Column(db.Text)
     exc_text = db.Column(db.Text)
@@ -253,12 +279,20 @@ class ScraperLog(db.Model):
     thread = db.Column(db.Integer)
     thread_name = db.Column(db.String(256))
     time_collected = db.Column(db.DateTime, default=datetime.datetime.now)
-    run_uuid = db.Column(db.String(32), db.ForeignKey('run.uuid'))
-
+    run_uuid = db.Column(db.String(32), db.ForeignKey(SCHEMA + '.run.uuid'))
 
 # Setup Flask-Security
+# an alias to reflect a more accurate usage of the validator
+unique_user_attribute = unique_user_email
+
+
+class ExtendedRegisterForm(RegisterForm):
+    first_name = StringField('First Name', [Required()])
+    last_name = StringField('Last Name', [Required()])
+    username = StringField('Username', [Required(), unique_user_attribute])
+
 user_datastore = SQLAlchemyUserDatastore(db, User, Role)
-security = Security(app, user_datastore)
+security = Security(app, user_datastore, register_form=ExtendedRegisterForm)
 
 
 # Customized User model for SQL-Admin
@@ -733,7 +767,7 @@ def datetime_to_str(timestamp):
 
 
 # Executes before the first request is processed.
-@app.before_first_request
+# @app.before_first_request
 def before_first_request():
 
     # Create any database tables that don't exist yet.
@@ -747,7 +781,7 @@ def before_first_request():
     # In each case, use Flask-Security utility function to encrypt the password.
     encrypted_password = utils.encrypt_password('password')
     if not user_datastore.get_user('admin@example.com'):
-        user_datastore.create_user(email='admin@example.com', password=encrypted_password)
+        user_datastore.create_user(email='admin@example.com', password=encrypted_password, username='AdminNick')
 
     # Commit any database changes; the User and Roles must exist before we can add a Role to the User
     db.session.commit()

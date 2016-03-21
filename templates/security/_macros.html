@@ -1,7 +1,13 @@
-{% macro render_field_with_errors(field) %}
+{% macro render_field_with_errors(field, new_label=none) %}
 
 <div class="form-group">
-    {{ field.label }} {{ field(class_='form-control', **kwargs)|safe }}
+    {% if new_label is none %}
+        {% set label = field.label %}
+    {% else %}
+        {% set label = new_label %}
+    {% endif %}
+
+    <b>{{ label }}</b> {{ field(class_='form-control', **kwargs)|safe }}
     {% if field.errors %}
     <ul>
         {% for error in field.errors %}
