@@ -15,7 +15,8 @@ from flask.ext.admin import Admin
 from flask.ext.admin.contrib import sqla
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.restful import Resource, Api, abort
-from flask.ext.security.forms import RegisterForm, LoginForm, StringField, Required, unique_user_email
+from flask.ext.security import user_registered
+from flask.ext.security.forms import ConfirmRegisterForm, LoginForm, StringField, Required, unique_user_email
 from sqlalchemy.ext.declarative import declared_attr, declarative_base
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from flask.ext.security import current_user, login_required, RoleMixin, Security, \
@@ -119,7 +120,7 @@ class User(db.Model, UserMixin):
     groups = db.relationship('Group', backref='user', cascade='all, delete',
                              lazy='dynamic')
     organizations = db.relationship('Organization', secondary=organizations_users,
-                                    back_populates='users')
+                                    backref=db.backref('users', lazy='dynamic'))
 
     def __str__(self):
         return self.username
@@ -129,9 +130,7 @@ class Organization(db.Model):
     __tablename__ = 'organization'
     __table_args__ = {'schema': SCHEMA}
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(64))
-    users = db.relationship('User', secondary=organizations_users,
-                            back_populates='organizations')
+    name = db.Column(db.String(128), unique=True)
 
 
 class ApiKey(db.Model):
@@ -286,13 +285,13 @@ class ScraperLog(db.Model):
 unique_user_attribute = unique_user_email
 
 
-class ExtendedRegisterForm(RegisterForm):
+class ExtendedRegisterForm(ConfirmRegisterForm):
     first_name = StringField('First Name', [Required()])
     last_name = StringField('Last Name', [Required()])
     username = StringField('Username', [Required(), unique_user_attribute])
 
 user_datastore = SQLAlchemyUserDatastore(db, User, Role)
-security = Security(app, user_datastore, register_form=ExtendedRegisterForm)
+security = Security(app, user_datastore, confirm_register_form=ExtendedRegisterForm)
 
 
 # Customized User model for SQL-Admin
@@ -764,6 +763,17 @@ def datetime_to_str(timestamp):
         return None
     # The script is set to use UTC, so all times are in UTC
     return timestamp.isoformat() + "+0000"
+
+
+# Create organization for user (each user will have their own organization)
+@user_registered.connect_via(app)
+def user_registered_sighandler(app, user, confirm_token):
+    organization = Organization(name=user.username)
+    # Get user and add organization
+    user_data = User.query.get(user.id)
+    user_data.organizations = [organization]
+    db.session.add(organization)
+    db.session.commit()
 
 
 # Executes before the first request is processed.
