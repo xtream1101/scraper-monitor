@@ -104,7 +104,6 @@ function addScraperRunning( response ){
     var action = response.action;
     var data = response.data;
     var $running = $('#running');
-    
 
     $.each( data, function( i, scraper ){
         if( action === 'add' ){
@@ -125,6 +124,7 @@ function addScraperRunning( response ){
             $.each( scraper, function( field, value ){
                 var $field = $scraperRun.find('.' + field).find('.value');
                 if( action === 'increment' ){
+                    // Get the current value and add to it
                     var currVal = parseInt($field.text());
                     value = currVal + value;
                 }
@@ -134,11 +134,10 @@ function addScraperRunning( response ){
             // Check if stopTime exists, if so move out of $running
             if( typeof scraper.stopTime !== 'undefined'){
                 if( $scraperRun.siblings().length === 0 ){
-                    console.log("Remove scraper parent")
-                    // scraper parent is empty in $running
+                    // Remove scraper parent since the last one just finished
+                    $scraperRun.parent().parent().remove();
                 }
                 addScraperFinished($scraperRun, scraper);
-
             }
         }
     });
