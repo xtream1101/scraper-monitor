@@ -6,6 +6,7 @@ $(function(){
         ],
         columns: [
             { data: 'rowId' },
+            { data: 'organization' },
             { data: 'name' },
             { data: 'key' },
             { data: 'host' },
@@ -43,6 +44,7 @@ $(function(){
         ],
         columns: [
             { data: 'rowId' },
+            { data: 'organization' },
             { data: 'name' },
             { data: 'action' },
         ],

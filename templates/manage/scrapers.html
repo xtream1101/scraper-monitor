@@ -12,9 +12,8 @@
         placeholder="Scraper Owner" value="{{ request.form.owner }}">
 
         <select id="group" class="select-group" name="group">
-            <option value="">No Group</option>
             {%- for group in groups %}
-            <option value="{{ group.id }}">{{ group.name }}</option>
+            <option value="{{ group.id }}">{{ group.organization }}.{{ group.name }}</option>
             {%- endfor %}        
         </select>
 

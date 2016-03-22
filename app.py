@@ -78,14 +78,14 @@ roles_users = db.Table(
     'roles_users',
     db.Column('user_id', db.Integer, db.ForeignKey(SCHEMA + '.user.id')),
     db.Column('role_id', db.Integer, db.ForeignKey(SCHEMA + '.role.id')),
-    schema='scraper_monitor',
+    schema=SCHEMA,
 )
 
 organizations_users = db.Table(
     'organizations_users',
     db.Column('user_id', db.Integer, db.ForeignKey(SCHEMA + '.user.id')),
     db.Column('organization_id', db.Integer, db.ForeignKey(SCHEMA + '.organization.id')),
-    schema='scraper_monitor',
+    schema=SCHEMA,
 )
 
 
@@ -112,15 +112,11 @@ class User(db.Model, UserMixin):
     active = db.Column(db.Boolean())
     confirmed_at = db.Column(db.DateTime)
     roles = db.relationship('Role', secondary=roles_users,
-                            backref=db.backref('users', lazy='dynamic'))
-    apikeys = db.relationship('ApiKey', backref='user', cascade='all, delete',
-                              lazy='dynamic')
-    scrapers = db.relationship('Scraper', backref='user', cascade='all, delete',
-                               lazy='dynamic')
-    groups = db.relationship('Group', backref='user', cascade='all, delete',
-                             lazy='dynamic')
+                            backref=db.backref('users', lazy='subquery'))
+    organizations_owner = db.relationship('Organization', backref='user',
+                                          lazy='subquery')
     organizations = db.relationship('Organization', secondary=organizations_users,
-                                    backref=db.backref('users', lazy='dynamic'))
+                                    backref=db.backref('users', lazy='subquery'))
 
     def __str__(self):
         return self.username
@@ -131,6 +127,19 @@ class Organization(db.Model):
     __table_args__ = {'schema': SCHEMA}
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), unique=True)
+    owner_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.user.id'))
+    groups = db.relationship('Group', backref='organization', cascade='all, delete',
+                             lazy='subquery')
+    apikeys = db.relationship('ApiKey', backref='organization', cascade='all, delete',
+                              lazy='subquery')
+
+    @property
+    def serialize(self):
+        """Return object data in easily serializeable format"""
+        return {'id': self.id,
+                'rowId': self.id,
+                'name': self.name,
+                }
 
 
 class ApiKey(db.Model):
@@ -141,7 +150,7 @@ class ApiKey(db.Model):
     host = db.Column(db.String(255))
     key = db.Column(db.String(36), default=generate_uid, unique=True)
     time_added = db.Column(db.DateTime, default=datetime.datetime.now)
-    user_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.user.id'))
+    organization_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.organization.id'))
 
     def __init__(self, name, host):
         self.name = name
@@ -152,6 +161,7 @@ class ApiKey(db.Model):
         """Return object data in easily serializeable format"""
         return {'id': self.id,
                 'rowId': self.id,
+                'organization': self.organization.name,
                 'name': self.name,
                 'host': self.host,
                 'key': self.key,
@@ -164,17 +174,15 @@ class Group(db.Model):
     __table_args__ = {'schema': SCHEMA}
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64))
-    user_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.user.id'))
-    scrapers = db.relationship('Scraper', backref='group', lazy='dynamic')
-
-    def __init__(self, name):
-        self.name = name
+    organization_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.organization.id'))
+    scrapers = db.relationship('Scraper', backref='group', lazy='subquery')
 
     @property
     def serialize(self):
         """Return object data in easily serializeable format"""
         return {'id': self.id,
                 'rowId': self.id,
+                'organization': self.organization.name,
                 'name': self.name,
                 }
 
@@ -187,10 +195,9 @@ class Scraper(db.Model):
     owner = db.Column(db.String(64))
     key = db.Column(db.String(32), unique=True)
     time_added = db.Column(db.DateTime, default=datetime.datetime.now)
-    user_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.user.id'))
     group_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.group.id'))
     scraper_runs = db.relationship('ScraperRun', backref='scraper',
-                                   cascade='all, delete-orphan', lazy='dynamic')
+                                   cascade='all, delete-orphan', lazy='subquery')
 
     def __init__(self, name, owner):
         self.name = name
@@ -199,22 +206,12 @@ class Scraper(db.Model):
     @property
     def serialize(self):
         """Return object data in easily serializeable format"""
-        # group = self.group
-        # if group is not None:
-        #     group = group.serialize
-        #     group = group['name']
-
-        # Need to do this query, one above breaks when deleting a scraper
-        group = Group.query.filter_by(id=self.group_id).scalar()
-        if group is not None:
-            group = group.serialize
-            group = group['name']
         return {'id': self.id,
                 'rowId': self.id,
                 'name': self.name,
                 'owner': self.owner,
                 'key': self.key,
-                'group': group,
+                'group': self.group.name,
                 'timeAdded': datetime_to_str(self.time_added),
                 }
 
@@ -231,21 +228,16 @@ class ScraperRun(db.Model):
     error_count = db.Column(db.Integer, default=0)
     warning_count = db.Column(db.Integer, default=0)
     scraper_key = db.Column(db.String(32), db.ForeignKey(SCHEMA + '.scraper.key'))
-    scraper_logs = db.relationship('ScraperLog', backref='scraper',
-                                   cascade='all, delete', lazy='dynamic')
+    scraper_logs = db.relationship('ScraperLog', backref='scraper_run',
+                                   cascade='all, delete', lazy='subquery')
 
     @property
     def serialize(self):
         """Return object data in easily serializeable format"""
-
-        # Need to do this query, one above breaks when deleting a scraper
-        scraper = Scraper.query.filter_by(key=self.scraper_key).scalar()
-        if scraper is not None:
-            scraper = scraper.serialize
         return {'id': self.id,
                 'rowId': self.uuid,
                 'uuid': self.uuid,
-                'name': scraper['name'],
+                'name': self.scraper.name,
                 'scraperKey': self.scraper_key,
                 'startTime': datetime_to_str(self.start_time),
                 'stopTime': datetime_to_str(self.stop_time),
@@ -367,25 +359,32 @@ def index():
 ###
 @socketio.on('connect', namespace='/manage/apikeys')
 def connect_manage_apikeys():
-    apikeys = ApiKey.query.filter_by(user_id=current_user.id).all()
-    apikeys = [i.serialize for i in apikeys]
-    emit('manage-apikeys', {'data': apikeys, 'action': 'add'})
+    apikey_list = []
+    for organization in current_user.organizations:
+        apikeys = ApiKey.query.filter_by(organization=organization).all()
+        apikeys = [i.serialize for i in apikeys]
+        apikey_list.extend(apikeys)
+
+    emit('manage-apikeys', {'data': apikey_list, 'action': 'add'})
 
 
 @app.route('/manage/apikeys', methods=['GET', 'POST'])
 @login_required
 def manage_apikeys():
-    logger.info("Api Keys page with type {}".format(request.method))
     if request.method == 'POST':
         rdata = {'success': False,
                  'message': '',
                  }
-        if not request.form['name']:
+        name = request.form['name'].strip()
+        host = request.form['host'].strip()
+        organization_id = request.form['organization'].strip()
+        if not name:
             rdata['message'] = "Name is required"
             rdata['success'] = False
         else:
-            apikey = ApiKey(request.form['name'], request.form['host'])
-            apikey.user = current_user
+            apikey = ApiKey(name, host)
+            apikey.organization = Organization.query.get(organization_id)
+
             db.session.add(apikey)
             db.session.commit()
             data = [apikey.serialize]
@@ -393,7 +392,7 @@ def manage_apikeys():
                           {'data': data, 'action': 'add'},
                           namespace='/manage/apikeys'
                           )
-            rdata['message'] = "Api key {} was successfully created".format(apikey.name)
+            rdata['message'] = "Api key {} was successfully created in {}".format(apikey.name, apikey.organization.name)
             rdata['success'] = True
         return jsonify(rdata)
 
@@ -403,17 +402,22 @@ def manage_apikeys():
 @app.route('/manage/apikeys/delete/<int:apikey_id>', methods=['GET'])
 @login_required
 def manage_apikey_delete(apikey_id):
-    apikey = ApiKey.query.filter_by(user_id=current_user.id)\
-                         .filter_by(id=apikey_id).scalar()
+    apikey = ApiKey.query.get(apikey_id)
+    # Check if user can delete apikey
+    if current_user not in apikey.organization.users:
+        abort(403)
+
     db.session.delete(apikey)
     db.session.commit()
-    logger.info("User {} deleted API Key {}".format(current_user, apikey.name))
+    logger.info("User {} deleted API Key {} from {}".format(current_user, apikey.name, apikey.organization.name))
     data = [apikey.serialize]
     socketio.emit('manage-apikeys',
                   {'data': data, 'action': 'delete'},
                   namespace='/manage/apikeys'
                   )
-    return jsonify({'message': "Deleted API key " + apikey.name})
+    return jsonify({'message': "Deleted API key {} from {}".format(apikey.name,
+                                                                   apikey.organization.name)
+                    })
 
 
 ###
@@ -421,9 +425,14 @@ def manage_apikey_delete(apikey_id):
 ###
 @socketio.on('connect', namespace='/manage/scrapers')
 def connect_manage_scrapers():
-    scrapers = Scraper.query.filter_by(user_id=current_user.id).all()
-    scrapers = [i.serialize for i in scrapers]
-    emit('manage-scrapers', {'data': scrapers, 'action': 'add'})
+    scraper_list = []
+    for organization in current_user.organizations:
+        for group in organization.groups:
+            scrapers = Scraper.query.filter_by(group=group).all()
+            scrapers = [i.serialize for i in scrapers]
+            scraper_list.extend(scrapers)
+
+    emit('manage-scrapers', {'data': scraper_list, 'action': 'add'})
 
 
 @app.route('/manage/scrapers', methods=['GET', 'POST'])
@@ -434,8 +443,8 @@ def manage_scrapers():
                  'message': '',
                  }
         name = request.form['name'].strip()
+        group_id = request.form['group'].strip()
         owner = request.form['owner'].strip()
-        group = request.form['group'].strip()
         if not name:
             rdata['message'] = "Name is required"
             rdata['success'] = False
@@ -443,8 +452,8 @@ def manage_scrapers():
             scraper = Scraper(name, owner)
             scraper.user = current_user
 
-            if group != "":
-                scraper.group = Group.query.filter_by(id=int(group)).scalar()
+            if group_id != "":
+                scraper.group = Group.query.get(group_id)
 
             db.session.add(scraper)
             # Flush to get the id so it can be encoded
@@ -460,13 +469,18 @@ def manage_scrapers():
                           {'data': data, 'action': 'add'},
                           namespace='/manage/scrapers'
                           )
-            rdata['message'] = "Api key {} was successfully created".format(scraper.name)
+            rdata['message'] = "Scraper {} was successfully created in group {}"\
+                               .format(scraper.name, scraper.group.name)
             rdata['success'] = True
         return jsonify(rdata)
 
+    group_list = []
+    for organization in current_user.organizations:
+        groups = Group.query.filter_by(organization=organization).all()
+        groups = [i.serialize for i in groups]
+        group_list.extend(groups)
     return render_template('manage/scrapers.html',
-                           groups=Group.query.filter_by(user_id=current_user.id)
-                                             .order_by(Group.name.asc()).all()
+                           groups=group_list
                            )
 
 
@@ -491,9 +505,13 @@ def manage_scraper_delete(scraper_id):
 ###
 @socketio.on('connect', namespace='/manage/groups')
 def connect_manage_groups():
-    groups = Group.query.filter_by(user_id=current_user.id).all()
-    groups = [i.serialize for i in groups]
-    emit('manage-groups', {'data': groups, 'action': 'add'})
+    group = []
+    for organization in current_user.organizations:
+        groups = Group.query.filter_by(organization=organization).all()
+        groups = [i.serialize for i in groups]
+        group.extend(groups)
+
+    emit('manage-groups', {'data': group, 'action': 'add'})
 
 
 @app.route('/manage/groups', methods=['GET', 'POST'])
@@ -504,29 +522,30 @@ def manage_groups():
                  'message': '',
                  }
         name = request.form['name'].strip()
+        organization_id = request.form['organization'].strip()
         if not name:
             rdata['message'] = "Name is required"
             rdata['success'] = False
         else:
-            # Check if group name for user already exists
-            is_group = Group.query.filter_by(user_id=current_user.id).filter_by(name=name).scalar()
+            # Check if group name for organization already exists
+            is_group = Group.query.filter_by(organization_id=organization_id).filter_by(name=name).scalar()
             if is_group is not None:
                 rdata['message'] = "Group with name {} already exists".format(name)
                 rdata['success'] = False
             else:
-                group = Group(name)
-                group.user = current_user
+                group = Group(name=name, organization_id=organization_id)
+                group.organization = Organization.query.get(organization_id)
 
                 db.session.add(group)
                 db.session.commit()
-                logger.info("User {} created group {}"
-                            .format(current_user.email, group.name))
+                logger.info("User {} created group {} in {}"
+                            .format(current_user.email, group.name, group.organization.name))
                 data = [group.serialize]
                 socketio.emit('manage-groups',
                               {'data': data, 'action': 'add'},
                               namespace='/manage/groups'
                               )
-                rdata['message'] = "Api key {} was successfully created".format(group.name)
+                rdata['message'] = "Group {} was successfully created in {}".format(group.name, group.organization.name)
                 rdata['success'] = True
         return jsonify(rdata)
 
@@ -536,17 +555,31 @@ def manage_groups():
 @app.route('/manage/groups/delete/<int:group_id>', methods=['GET'])
 @login_required
 def manage_group_delete(group_id):
-    group = Group.query.filter_by(user_id=current_user.id).filter_by(id=group_id).scalar()
-    db.session.delete(group)
-    db.session.commit()
-    logger.info("User {} deleted group {}"
-                .format(current_user.email, group.name))
-    data = [group.serialize]
-    socketio.emit('manage-groups',
-                  {'data': data, 'action': 'delete'},
-                  namespace='/manage/groups'
-                  )
-    return jsonify({'message': "Deleted Group " + group.name})
+    rdata = {'success': False,
+             'message': '',
+             }
+    group = Group.query.get(group_id)
+    # Check if user can delete group
+    if current_user not in group.organization.users:
+        abort(403)
+
+    if group.name == 'default':
+        rdata['message'] = "Cannot delete default group"
+    else:
+        db.session.delete(group)
+        db.session.commit()
+        logger.info("User {} deleted group {} from {}"
+                    .format(current_user.email, group.name, group.organization.name))
+        data = [group.serialize]
+        socketio.emit('manage-groups',
+                      {'data': data, 'action': 'delete'},
+                      namespace='/manage/groups'
+                      )
+
+        rdata['message'] = "Deleted Group {} from {}".format(group.name, group.organization.name)
+        rdata['success'] = True
+
+    return jsonify(rdata)
 
 
 ###############################################################################
@@ -765,19 +798,21 @@ def datetime_to_str(timestamp):
     return timestamp.isoformat() + "+0000"
 
 
-# Create organization for user (each user will have their own organization)
 @user_registered.connect_via(app)
 def user_registered_sighandler(app, user, confirm_token):
-    organization = Organization(name=user.username)
     # Get user and add organization
     user_data = User.query.get(user.id)
+    # Create an organization of username for user by default
+    organization = Organization(name=user.username, user=user)
     user_data.organizations = [organization]
     db.session.add(organization)
+    group = Group(name='default', organization_id=organization.id)
+    db.session.add(group)
     db.session.commit()
 
 
 # Executes before the first request is processed.
-# @app.before_first_request
+@app.before_first_request
 def before_first_request():
 
     # Create any database tables that don't exist yet.
@@ -789,16 +824,16 @@ def before_first_request():
 
     # Create two Users for testing purposes -- unless they already exists.
     # In each case, use Flask-Security utility function to encrypt the password.
-    encrypted_password = utils.encrypt_password('password')
-    if not user_datastore.get_user('admin@example.com'):
-        user_datastore.create_user(email='admin@example.com', password=encrypted_password, username='AdminNick')
+    # encrypted_password = utils.encrypt_password('password')
+    # if not user_datastore.get_user('admin@example.com'):
+    #     user_datastore.create_user(email='admin@example.com', password=encrypted_password, username='AdminNick')
 
     # Commit any database changes; the User and Roles must exist before we can add a Role to the User
     db.session.commit()
 
     # Give one User has the "end-user" role, while the other has the "admin" role. (This will have no effect if the
     # Users already have these Roles.) Again, commit any database changes.
-    user_datastore.add_role_to_user('admin@example.com', 'admin')
+    # user_datastore.add_role_to_user('admin@example.com', 'admin')
     db.session.commit()
 
 if __name__ == '__main__':

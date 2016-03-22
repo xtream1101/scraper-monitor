@@ -36,7 +36,7 @@
 					<ul class="sub-menu collapse" id="data">
 						<li id="menu-data-1" class="sub-menu-item"><a href="{{ url_for('data_scrapers') }}">Scrapers</a></li>
 					</ul>
-					<li><a href="#"><i class="fa fa-user fa-lg"></i> Profile</a></li>
+					<li><a href="#"><i class="fa fa-user fa-lg"></i> Profile ({{ current_user.username }})</a></li>
 					<li><a href="{{ url_for('security.logout') }}">Logout</a></li>
 					{% else %}
 					<li><a href="{{ url_for('security.login') }}">Login</a></li>
