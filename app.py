@@ -359,6 +359,10 @@ def index():
 ###
 @socketio.on('connect', namespace='/manage/apikeys')
 def connect_manage_apikeys():
+    if not current_user.is_authenticated:
+        # If user is not logged in, deny them access
+        return False
+
     apikey_list = []
     for organization in current_user.organizations:
         apikeys = ApiKey.query.filter_by(organization=organization).all()
@@ -425,6 +429,10 @@ def manage_apikey_delete(apikey_id):
 ###
 @socketio.on('connect', namespace='/manage/scrapers')
 def connect_manage_scrapers():
+    if not current_user.is_authenticated:
+        # If user is not logged in, deny them access
+        return False
+
     scraper_list = []
     for organization in current_user.organizations:
         for group in organization.groups:
@@ -487,7 +495,11 @@ def manage_scrapers():
 @app.route('/manage/scrapers/delete/<int:scraper_id>', methods=['GET'])
 @login_required
 def manage_scraper_delete(scraper_id):
-    scraper = Scraper.query.filter_by(user_id=current_user.id).filter_by(id=scraper_id).scalar()
+    scraper = Scraper.query.get(scraper_id)
+    # Check if user can delete group
+    if current_user not in scraper.group.organization.users:
+        abort(403)
+
     db.session.delete(scraper)
     db.session.commit()
     logger.info("User {} deleted scraper {} - {}"
@@ -505,6 +517,10 @@ def manage_scraper_delete(scraper_id):
 ###
 @socketio.on('connect', namespace='/manage/groups')
 def connect_manage_groups():
+    if not current_user.is_authenticated:
+        # If user is not logged in, deny them access
+        return False
+
     group = []
     for organization in current_user.organizations:
         groups = Group.query.filter_by(organization=organization).all()
@@ -592,6 +608,10 @@ def manage_group_delete(group_id):
 
 @socketio.on('connect', namespace='/data/scrapers')
 def connect_data_scrapers():
+    if not current_user.is_authenticated:
+        # If user is not logged in, deny them access
+        return False
+
     # scrapers = Scraper.query.filter_by(user_id=current_user.id).all()
     scrapers = ScraperRun.query.filter_by(stop_time=None).all()
     scrapers = [i.serialize for i in scrapers]
