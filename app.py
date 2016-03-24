@@ -6,7 +6,7 @@ import eventlet
 from functools import wraps
 from hashids import Hashids
 
-from flask_socketio import SocketIO, emit, join_room, leave_room, \
+from flask_socketio import SocketIO, emit, join_room, leave_room, send,\
     close_room, rooms, disconnect
 
 from flask_mail import Mail
@@ -365,6 +365,7 @@ def connect_manage_apikeys():
 
     apikey_list = []
     for organization in current_user.organizations:
+        join_room(organization.id)
         apikeys = ApiKey.query.filter_by(organization=organization).all()
         apikeys = [i.serialize for i in apikeys]
         apikey_list.extend(apikeys)
@@ -394,9 +395,11 @@ def manage_apikeys():
             data = [apikey.serialize]
             socketio.emit('manage-apikeys',
                           {'data': data, 'action': 'add'},
-                          namespace='/manage/apikeys'
+                          namespace='/manage/apikeys',
+                          room=organization_id
                           )
-            rdata['message'] = "Api key {} was successfully created in {}".format(apikey.name, apikey.organization.name)
+            rdata['message'] = "Api key {} was successfully created in {}".format(apikey.name,
+                                                                                  apikey.organization.name)
             rdata['success'] = True
         return jsonify(rdata)
 
@@ -417,7 +420,8 @@ def manage_apikey_delete(apikey_id):
     data = [apikey.serialize]
     socketio.emit('manage-apikeys',
                   {'data': data, 'action': 'delete'},
-                  namespace='/manage/apikeys'
+                  namespace='/manage/apikeys',
+                  room=apikey.organization.id
                   )
     return jsonify({'message': "Deleted API key {} from {}".format(apikey.name,
                                                                    apikey.organization.name)
@@ -435,6 +439,7 @@ def connect_manage_scrapers():
 
     scraper_list = []
     for organization in current_user.organizations:
+        join_room(organization.id)
         for group in organization.groups:
             scrapers = Scraper.query.filter_by(group=group).all()
             scrapers = [i.serialize for i in scrapers]
@@ -475,7 +480,8 @@ def manage_scrapers():
             data = [scraper.serialize]
             socketio.emit('manage-scrapers',
                           {'data': data, 'action': 'add'},
-                          namespace='/manage/scrapers'
+                          namespace='/manage/scrapers',
+                          room=scraper.group.organization.id
                           )
             rdata['message'] = "Scraper {} was successfully created in group {}"\
                                .format(scraper.name, scraper.group.name)
@@ -507,7 +513,8 @@ def manage_scraper_delete(scraper_id):
     data = [scraper.serialize]
     socketio.emit('manage-scrapers',
                   {'data': data, 'action': 'delete'},
-                  namespace='/manage/scrapers'
+                  namespace='/manage/scrapers',
+                  room=scraper.group.organization.id
                   )
     return jsonify({'message': "Deleted Scraper " + scraper.name})
 
@@ -523,6 +530,7 @@ def connect_manage_groups():
 
     group = []
     for organization in current_user.organizations:
+        join_room(organization.id)
         groups = Group.query.filter_by(organization=organization).all()
         groups = [i.serialize for i in groups]
         group.extend(groups)
@@ -559,9 +567,11 @@ def manage_groups():
                 data = [group.serialize]
                 socketio.emit('manage-groups',
                               {'data': data, 'action': 'add'},
-                              namespace='/manage/groups'
+                              namespace='/manage/groups',
+                              room=organization_id
                               )
-                rdata['message'] = "Group {} was successfully created in {}".format(group.name, group.organization.name)
+                rdata['message'] = "Group {} was successfully created in {}".format(group.name,
+                                                                                    group.organization.name)
                 rdata['success'] = True
         return jsonify(rdata)
 
@@ -589,7 +599,8 @@ def manage_group_delete(group_id):
         data = [group.serialize]
         socketio.emit('manage-groups',
                       {'data': data, 'action': 'delete'},
-                      namespace='/manage/groups'
+                      namespace='/manage/groups',
+                      room=group.organization.id
                       )
 
         rdata['message'] = "Deleted Group {} from {}".format(group.name, group.organization.name)
@@ -728,7 +739,8 @@ class APIScraperLogging(Resource):
 
         socketio.emit('data-scrapers',
                       {'data': data, 'action': 'increment'},
-                      namespace='/data/scrapers'
+                      namespace='/data/scrapers',
+                      room=log.scraper_run.scraper.group.organization.id
                       )
 
         rdata['success'] = True
@@ -759,7 +771,8 @@ class APIScraperDataStart(Resource):
         data = [run.serialize]
         socketio.emit('data-scrapers',
                       {'data': data, 'action': 'add'},
-                      namespace='/data/scrapers'
+                      namespace='/data/scrapers',
+                      room=run.scraper.group.organization.id
                       )
 
         rdata['success'] = True
@@ -795,7 +808,8 @@ class APIScraperDataStop(Resource):
         data = [run.serialize]
         socketio.emit('data-scrapers',
                       {'data': data, 'action': 'update'},
-                      namespace='/data/scrapers'
+                      namespace='/data/scrapers',
+                      room=run.scraper.group.organization.id
                       )
 
         rdata['success'] = True
