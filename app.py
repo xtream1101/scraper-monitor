@@ -559,6 +559,7 @@ def manage_groups():
                 rdata['message'] = "Group with name {} already exists".format(name)
                 rdata['success'] = False
             else:
+                # TODO: Make sure current_user has perms to create a group in this organization
                 group = Group(name=name, organization_id=organization_id)
                 group.organization = Organization.query.get(organization_id)
 
@@ -702,6 +703,13 @@ def manage_organizations_add_user():
         abort(403)
 
     new_user = User.query.filter_by(username=name).scalar()
+    # Check if new_user is already part of this organization
+    if new_user in organization.users:
+        rdata['message'] = "User {} is already part of organization {}".format(new_user.username,
+                                                                               organization.name)
+        rdata['success'] = True
+        return jsonify(rdata)
+
     if new_user is None:
         rdata['message'] = "User {} does not exists".format(name)
         rdata['success'] = False
