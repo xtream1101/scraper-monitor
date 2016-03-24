@@ -22,7 +22,14 @@ var _template = {
             '<b><span class="name">Scraper: <span class="value">{{name}}</span></span> | ' +
             '<span class="key">Key: <span class="value">{{scraperKey}}</span></span></b><br />' +
             '<div class="runs"></div>' +
-            
+        '</div>'
+    ),
+    organization: _.template(
+        '<div id="{{rowId}}" class="organization">' +
+            '<b><span class="name">{{name}}</span> | ' +
+            '<b><span class="owner">{{owner}}</span> | ' +
+            '<b><span class="is_owner">{{isOwner}}</span> | ' +
+            '<button class="btn-del" data-id="{{rowId}}">Delete</button>' +
         '</div>'
     ),
     deleteBtn: _.template('<button class="btn-del" data-id="{{rowId}}">Delete</button>'),
@@ -36,7 +43,9 @@ $(function(){
 
     $('body').on( 'click', '.btn-del', function( event ){
         var id = event.target.dataset.id;
-        $.getJSON(url + '/delete/' + id)
+        $.getJSON(url + '/delete/' + id, function( data ){
+            console.log("Delete Action response: ", data);
+        });
     });
 
     $('.sub-menu-item').on( 'click', function( event ){
@@ -51,13 +60,17 @@ function initPage(){
 
     if( page === '/manage/apikeys' ){
         socketListen = 'manage-apikeys';
-        $form = $('#add-apikey');
+        $('#add-apikey').on( "submit", submitForm);
     }else if( page === '/manage/scrapers' ){
         socketListen = 'manage-scrapers';
-        $form = $('#add-scraper');
+        $('#add-scraper').on( "submit", submitForm);
     }else if( page === '/manage/groups' ){
         socketListen = 'manage-groups';
-        $form = $('#add-group');
+        $('#add-group').on( "submit", submitForm);
+    }else if( page === '/manage/organizations' ){
+        socketListen = 'manage-organizations';
+        $('#add-organization').on( "submit", submitForm);
+        $('#add-organization-user').on( "submit", submitForm);
     }else if( page === '/data/scrapers' ){
         socketListen = 'data-scrapers';
     }
@@ -67,27 +80,28 @@ function initPage(){
             console.log("WebSocket: ", data);
             if( page === '/data/scrapers' ){
                 addScraperRunning(data)
+            }else if( page === '/manage/organizations' ){
+                addOrganizations(data)
             }else{
                 addToTable(data, socketListen);
             }
         });
     }
-    if( $form !== null ){
-        // Submit the form data to add a new item
-        $form.on( "submit", function( event ){
-            event.preventDefault();
-            var datastring = $form.serialize();
-            $.ajax({
-                type: "POST",
-                url: url,
-                data: datastring,
-                success: function( data ){
-                    $form.trigger("reset");
-                    console.log("Action response: ", data);
-                }
-            });
-        });
-    }
+}
+
+function submitForm( event ){
+    event.preventDefault();
+    var $form = $(event.currentTarget);
+    var datastring = $form.serialize();
+    $.ajax({
+        type: "POST",
+        url: $form.context.action,
+        data: datastring,
+        success: function( data ){
+            $form.trigger("reset");
+            console.log("Action response: ", data);
+        }
+    });
 }
 
 function setActiveMenuItem(){
@@ -117,7 +131,6 @@ function addScraperRunning( response ){
             var $scraperParent = $(scraperParentIdent).find('.runs');
             // Add scraper run to parent in $running
             $scraperParent.append(_template.scraperRun(scraper));
-
         }else if( action === 'update' || action === 'increment' ){
             var $scraperRun = $running.find('#run-' + scraper.rowId);
             // Update the values
@@ -139,6 +152,23 @@ function addScraperRunning( response ){
                 }
                 addScraperFinished($scraperRun, scraper);
             }
+        }
+    });
+}
+
+function addOrganizations( response ){
+    var action = response.action;
+    var data = response.data;
+    var $owner = $('#owner');
+    var $member = $('#member');
+
+    $.each( data, function( i, organization ){
+        if( action === 'add' ){
+            if( $member.find('#'+organization.rowId).length === 0 ){
+                $member.append(_template.organization(organization));
+            }
+        }else if( action === 'delete' ){
+            $member.find('#'+organization.rowId).remove();
         }
     });
 }

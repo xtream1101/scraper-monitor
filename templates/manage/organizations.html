@@ -1,0 +1,37 @@
+{% extends "layout.html" %}
+{% block body %}
+<div id="main" class="container">
+
+    <h2>Organizations</h2>
+    <form action="" method="post" id="add-organization" class="form-horizontal">
+        <h4>Create Organization</h4>
+
+        <input type="text" id="name" name="name" class="input-large"
+        placeholder="Name the Organization" required>
+
+        <button type="submit" class="btn btn-success">Add Organization</button>
+    </form>
+
+    <form action="/manage/organizations/adduser" method="post" id="add-organization-user" class="form-horizontal">
+        <h4>Add User</h4>
+
+        <input type="text" id="name" name="name" class="input-large"
+        placeholder="Name the group" required>
+
+        <select id="organization" class="select-organization" name="organization">
+            <!-- TODO: Remove users personal organization -->
+            {%- for organization in current_user.organizations %}
+            <option value="{{ organization.id }}">{{ organization.name }}</option>
+            {%- endfor %}        
+        </select>
+
+        <button type="submit" class="btn btn-success">Add User</button>
+    </form>
+
+    <h2>Member of</h2>
+    <div id="member">
+        
+    </div>
+
+</div>
+{% endblock %}
