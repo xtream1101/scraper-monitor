@@ -396,7 +396,7 @@ def manage_apikeys():
             socketio.emit('manage-apikeys',
                           {'data': data, 'action': 'add'},
                           namespace='/manage/apikeys',
-                          room=organization_id
+                          room=apikey.organization.id
                           )
             rdata['message'] = "Api key {} was successfully created in {}".format(apikey.name,
                                                                                   apikey.organization.name)
@@ -623,6 +623,9 @@ def connect_data_scrapers():
         # If user is not logged in, deny them access
         return False
 
+    for organization in current_user.organizations:
+        join_room(organization.id)
+
     # scrapers = Scraper.query.filter_by(user_id=current_user.id).all()
     scrapers = ScraperRun.query.filter_by(stop_time=None).all()
     scrapers = [i.serialize for i in scrapers]
@@ -671,18 +674,18 @@ def validate_api_scraper_key(func):
                  'message': ""
                  }
         try:
-            user_id = None
+            organization_id = None
             api_key = request.args['apikey']
             if 'scraperKey' in request.args:
                 scraper_key = request.args['scraperKey']
                 # Check that the apikey has acccess to the sensor
-                user_id = Scraper.query.filter_by(key=scraper_key).scalar().user_id
+                organization_id = Scraper.query.filter_by(key=scraper_key).scalar().group.organization.id
             else:
                 rdata['message'] = "Missing scraper key"
                 return rdata
 
-            key_user_id = ApiKey.query.filter_by(key=api_key).scalar().user_id
-            if key_user_id == user_id:
+            key_organization_id = ApiKey.query.filter_by(key=api_key).scalar().organization_id
+            if key_organization_id == organization_id:
                 # The api key and sensor/group both belong to the same user
                 return func(*args, **kwargs)
             else:
@@ -767,12 +770,14 @@ class APIScraperDataStart(Resource):
 
         db.session.add(run)
         db.session.commit()
-
+        print("\n\n")
+        print(run.scraper.group.organization_id)
+        print("\n\n")
         data = [run.serialize]
         socketio.emit('data-scrapers',
                       {'data': data, 'action': 'add'},
                       namespace='/data/scrapers',
-                      room=run.scraper.group.organization.id
+                      room=run.scraper.group.organization_id
                       )
 
         rdata['success'] = True
