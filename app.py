@@ -228,6 +228,8 @@ class ScraperRun(db.Model):
     start_time = db.Column(db.DateTime)
     stop_time = db.Column(db.DateTime)
     runtime = db.Column(db.Float)
+    total_urls = db.Column(db.Integer)
+    num_items_scraped = db.Column(db.Integer)
     critical_count = db.Column(db.Integer, default=0)
     error_count = db.Column(db.Integer, default=0)
     warning_count = db.Column(db.Integer, default=0)
@@ -986,6 +988,8 @@ class APIScraperDataStop(Resource):
         data = request.json
 
         run = ScraperRun.query.filter_by(uuid=client_data['scraperRun']).scalar()
+        run.total_urls = data.get('totalUrls')
+        run.num_items_scraped = data.get('itemsScraped')
         run.stop_time = datetime.datetime.strptime(data['stopTime'], "%Y-%m-%d %H:%M:%S.%f")
         # Calc runtime and get counts
         runtime = run.stop_time - run.start_time
