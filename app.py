@@ -178,6 +178,7 @@ class Group(db.Model):
     name = db.Column(db.String(64))
     organization_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.organization.id'))
     scrapers = db.relationship('Scraper', backref='group', lazy='subquery')
+    scraper_runs = db.relationship('ScraperRun', backref='group', lazy='subquery')
 
     @property
     def serialize(self):
@@ -214,6 +215,7 @@ class Scraper(db.Model):
                 'owner': self.owner,
                 'key': self.key,
                 'group': self.group.name,
+                'organization': self.group.organization.name,
                 'timeAdded': datetime_to_str(self.time_added),
                 }
 
@@ -229,9 +231,13 @@ class ScraperRun(db.Model):
     critical_count = db.Column(db.Integer, default=0)
     error_count = db.Column(db.Integer, default=0)
     warning_count = db.Column(db.Integer, default=0)
+    url_error_count = db.Column(db.Integer, default=0)
     scraper_key = db.Column(db.String(32), db.ForeignKey(SCHEMA + '.scraper.key'))
+    group_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.group.id'))
     scraper_logs = db.relationship('ScraperLog', backref='scraper_run',
                                    cascade='all, delete', lazy='subquery')
+    scraper_url_errors = db.relationship('ScraperUrlError', backref='scraper_run',
+                                         cascade='all, delete', lazy='subquery')
 
     @property
     def serialize(self):
@@ -241,12 +247,14 @@ class ScraperRun(db.Model):
                 'uuid': self.uuid,
                 'name': self.scraper.name,
                 'scraperKey': self.scraper_key,
+                'group_id': self.group_id,
                 'startTime': datetime_to_str(self.start_time),
                 'stopTime': datetime_to_str(self.stop_time),
                 'runtime': self.runtime,
                 'criticalCount': self.critical_count,
                 'errorCount': self.error_count,
                 'warningCount': self.warning_count,
+                'urlErrorCount': self.url_error_count,
                 }
 
 
@@ -269,8 +277,21 @@ class ScraperLog(db.Model):
     process_name = db.Column(db.String(256))
     relative_created = db.Column(db.Float)
     stack_info = db.Column(db.String(256))
-    thread = db.Column(db.Integer)
+    thread = db.Column(db.String(256))
     thread_name = db.Column(db.String(256))
+    time_collected = db.Column(db.DateTime, default=datetime.datetime.now)
+    run_uuid = db.Column(db.String(32), db.ForeignKey(SCHEMA + '.run.uuid'))
+
+
+class ScraperUrlError(db.Model):
+    __tablename__ = 'run_url_error'
+    __table_args__ = {'schema': SCHEMA}
+    id = db.Column(db.Integer(), primary_key=True)
+    url = db.Column(db.String(1024))
+    reason = db.Column(db.String(256))
+    status_code = db.Column(db.Integer())
+    thread_name = db.Column(db.String(256))
+    num_tries = db.Column(db.Integer())
     time_collected = db.Column(db.DateTime, default=datetime.datetime.now)
     run_uuid = db.Column(db.String(32), db.ForeignKey(SCHEMA + '.run.uuid'))
 
@@ -418,7 +439,9 @@ def manage_apikey_delete(apikey_id):
 
     db.session.delete(apikey)
     db.session.commit()
-    logger.info("User {} deleted API Key {} from {}".format(current_user, apikey.name, apikey.organization.name))
+    logger.info("User {} deleted API Key {} from {}".format(current_user,
+                                                            apikey.name,
+                                                            apikey.organization.name))
     data = [apikey.serialize]
     socketio.emit('manage-apikeys',
                   {'data': data, 'action': 'delete'},
@@ -772,19 +795,27 @@ def connect_data_scrapers():
         # If user is not logged in, deny them access
         return False
 
+    scraper_list = []
     for organization in current_user.organizations:
         join_room('organization-' + str(organization.id))
+        for group in organization.groups:
+            for scraper in group.scrapers:
+                runs = ScraperRun.query.filter_by(group=group)\
+                                       .filter_by(scraper_key=scraper.key)\
+                                       .order_by(ScraperRun.stop_time.desc())\
+                                       .limit(5).all()
 
-    # scrapers = Scraper.query.filter_by(user_id=current_user.id).all()
-    scrapers = ScraperRun.query.filter_by(stop_time=None).all()
-    scrapers = [i.serialize for i in scrapers]
-    emit('data-scrapers', {'data': scrapers, 'action': 'add'})
+                run_list = [i.serialize for i in runs]
+                scraper_list.extend(run_list)
+
+    emit('data-scrapers', {'data': scraper_list, 'action': 'add'})
 
 
 @app.route('/data/scrapers', methods=['GET'])
 @login_required
 def data_scrapers():
     return render_template('data/scrapers.html')
+
 
 ###############################################################################
 ###############################################################################
@@ -861,8 +892,7 @@ class APIScraperLogging(Resource):
         rdata = {'success': False,
                  'message': ""
                  }
-        # pprint(request.args)
-        # pprint(request.form)
+
         client_data = request.args
         log_data = request.form
 
@@ -877,6 +907,14 @@ class APIScraperLogging(Resource):
         log.line_no = log_data['lineno']
         log.message = log_data['message']
         log.module = log_data['module']
+        log.name = log_data['name']
+        log.pathname = log_data['pathname']
+        log.process = log_data['process']
+        log.process_name = log_data['processName']
+        log.relative_created = log_data['relativeCreated']
+        log.stack_info = log_data['stack_info']
+        log.thread = log_data['thread']
+        log.thread_name = log_data['threadName']
 
         db.session.add(log)
         db.session.commit()
@@ -912,16 +950,17 @@ class APIScraperDataStart(Resource):
         client_data = request.args
         data = request.json
 
+        group_id = Scraper.query.filter_by(key=client_data['scraperKey']).scalar().group_id
+
         run = ScraperRun()
         run.scraper_key = client_data['scraperKey']
+        run.group_id = group_id
         run.uuid = client_data['scraperRun']
         run.start_time = data['startTime']
 
         db.session.add(run)
         db.session.commit()
-        print("\n\n")
-        print(run.scraper.group.organization_id)
-        print("\n\n")
+
         data = [run.serialize]
         socketio.emit('data-scrapers',
                       {'data': data, 'action': 'add'},
@@ -957,6 +996,8 @@ class APIScraperDataStop(Resource):
         run.error_count = counts.filter_by(level_name='ERROR').count()
         run.warning_count = counts.filter_by(level_name='WARNING').count()
 
+        run.url_error_count = ScraperUrlError.query.filter_by(run_uuid=client_data['scraperRun']).count()
+
         db.session.commit()
 
         data = [run.serialize]
@@ -971,9 +1012,53 @@ class APIScraperDataStop(Resource):
 
         return rdata
 
+
+class APIScraperErrorUrl(Resource):
+    method_decorators = [validate_api_scraper_key, authenticate_api]
+
+    def post(self):
+        rdata = {'success': False,
+                 'message': ""
+                 }
+
+        client_data = request.args
+        data = request.json
+
+        url_error = ScraperUrlError()
+        url_error.run_uuid = client_data['scraperRun']
+        url_error.num_tries = data.get('numTries')
+        url_error.reason = data.get('reason')
+        url_error.status_code = data.get('statusCode')
+        url_error.thread_name = data.get('threadName')
+        url_error.url = data.get('url')
+
+        db.session.add(url_error)
+        db.session.commit()
+
+        data = [{'rowId': client_data['scraperRun'],
+                 'urlErrorCount': 1
+                 }]
+
+        socketio.emit('data-scrapers',
+                      {'data': data, 'action': 'increment', 'foo':'bar'},
+                      namespace='/data/scrapers',
+                      room='organization-' + str(url_error.scraper_run.scraper.group.organization.id)
+                      )
+
+        rdata['success'] = True
+        rdata['message'] = ""
+
+        return rdata
+
+# Logs from the python logging HTTPHandler
 api.add_resource(APIScraperLogging, '/logs')
+
+# General data about the scraper
 api.add_resource(APIScraperDataStart, '/data/start')
 api.add_resource(APIScraperDataStop, '/data/stop')
+
+# Scraper errors that are not logs
+api.add_resource(APIScraperErrorUrl, '/error/url')
 
 
 #######################

@@ -14,13 +14,15 @@ var _template = {
             '<span class="runtime"><span class="value">{{runtime}}</span></span>  | ' +
             '<span class="criticalCount"><span class="value">{{criticalCount}}</span></span>  | ' +
             '<span class="errorCount"><span class="value">{{errorCount}}</span></span>  | ' +
-            '<span class="warningCount"><span class="value">{{warningCount}}</span></span>' +
+            '<span class="warningCount"><span class="value">{{warningCount}}</span></span> | ' +
+            '<span class="urlErrorCount"><span class="value">{{urlErrorCount}}</span></span>' +
         '</div>'
     ),
     scraperParent: _.template(
         '<div id="{{scraperKey}}" class="scraper-parent {{runClass}}">' +
             '<b><span class="name">Scraper: <span class="value">{{name}}</span></span> | ' +
-            '<span class="key">Key: <span class="value">{{scraperKey}}</span></span></b><br />' +
+            '<span class="key">Key: <span class="value">{{scraperKey}}</span></span></b> ' +
+            '<span class="link"><a href="/data/scrapers/{{scraperKey}}">Go To</a><br />' +
             '<div class="runs"></div>' +
         '</div>'
     ),
@@ -79,7 +81,7 @@ function initPage(){
         socket.on(socketListen, function( data ){
             console.log("WebSocket: ", data);
             if( page === '/data/scrapers' ){
-                addScraperRunning(data)
+                addScraper(data)
             }else if( page === '/manage/organizations' ){
                 addOrganizations(data)
             }else{
@@ -114,23 +116,36 @@ function setActiveMenuItem(){
     $menuHeader.addClass('active');
 }
 
-function addScraperRunning( response ){
+function addScraper( response ){
     var action = response.action;
     var data = response.data;
     var $running = $('#running');
+    var $finished = $('#finished');
 
     $.each( data, function( i, scraper ){
         if( action === 'add' ){
-            // Not in running list so add it
-            // Check if scraper run has a scraper parent in $running
-            var scraperParentIdent = '#' + scraper.scraperKey + '.running';
-            if( $(scraperParentIdent).length === 0 ){
-                scraper.runClass = 'running';
-                $running.append(_template.scraperParent(scraper));
+            if( scraper.stopTime !== null ){
+                // Check if scraper is not in finished
+                var scraperParentIdent = '#' + scraper.scraperKey + '.finished';
+                if( $(scraperParentIdent).length === 0 ){
+                    scraper.runClass = 'finished';
+                    $finished.append(_template.scraperParent(scraper))
+                }
+                var $scraperParent = $(scraperParentIdent).find('.runs');
+                // Add scraper run to parent in $running
+                $scraperParent.append(_template.scraperRun(scraper));
+            }else{
+                // Not in running list so add it
+                // Check if scraper run has a scraper parent in $running
+                var scraperParentIdent = '#' + scraper.scraperKey + '.running';
+                if( $(scraperParentIdent).length === 0 ){
+                    scraper.runClass = 'running';
+                    $running.append(_template.scraperParent(scraper));
+                }
+                var $scraperParent = $(scraperParentIdent).find('.runs');
+                // Add scraper run to parent in $running
+                $scraperParent.append(_template.scraperRun(scraper));
             }
-            var $scraperParent = $(scraperParentIdent).find('.runs');
-            // Add scraper run to parent in $running
-            $scraperParent.append(_template.scraperRun(scraper));
         }else if( action === 'update' || action === 'increment' ){
             var $scraperRun = $running.find('#run-' + scraper.rowId);
             // Update the values
@@ -145,15 +160,27 @@ function addScraperRunning( response ){
             });
 
             // Check if stopTime exists, if so move out of $running
-            if( typeof scraper.stopTime !== 'undefined'){
+            if( typeof scraper.stopTime !== 'undefined' ){
                 if( $scraperRun.siblings().length === 0 ){
                     // Remove scraper parent since the last one just finished
                     $scraperRun.parent().parent().remove();
                 }
-                addScraperFinished($scraperRun, scraper);
+                moveScraperFinished($scraperRun, scraper);
             }
         }
     });
+}
+
+function moveScraperFinished( $scraperRun, scraper ){
+    var $finished = $('#finished');
+    var scraperParentIdent = '#' + scraper.scraperKey + '.finished';
+    if( $(scraperParentIdent).length === 0 ){
+        scraper.runClass = 'finished';
+        $finished.append(_template.scraperParent(scraper));
+    }
+    var $scraperParent = $(scraperParentIdent).find('.runs');
+    // Add scraper run to parent in $finished
+    $scraperParent.prepend($scraperRun);
 }
 
 function addOrganizations( response ){
@@ -171,18 +198,6 @@ function addOrganizations( response ){
             $member.find('#'+organization.rowId).remove();
         }
     });
-}
-
-function addScraperFinished( $scraperRun, scraper ){
-    var $finished = $('#finished');
-    var scraperParentIdent = '#' + scraper.scraperKey + '.finished';
-    if( $(scraperParentIdent).length === 0 ){
-        scraper.runClass = 'finished';
-        $finished.append(_template.scraperParent(scraper));
-    }
-    var $scraperParent = $(scraperParentIdent).find('.runs');
-    // Add scraper run to parent in $finished
-    $scraperParent.append($scraperRun);
 }
 
 function addToTable( response, tableName ){
