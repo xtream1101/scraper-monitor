@@ -1,6 +1,7 @@
 import os
 from app import app, db
 from api import *
+from admin import *
 from auth import *
 from models import *
 from views import *
@@ -48,4 +49,4 @@ def before_first_request():
     db.session.commit()
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    socketio.run(app, port=app.config['PORT'], debug=app.config['DEBUG'])

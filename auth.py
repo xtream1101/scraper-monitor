@@ -28,5 +28,10 @@ def user_registered_sighandler(app, user, confirm_token):
     user_data.organizations = [organization]
     db.session.add(organization)
     group = Group(name='Default', organization_id=organization.id)
+
+    # If first user to register, make site admin
+    if user.id == 1:
+        user_datastore.add_role_to_user(user.email, 'admin')
+
     db.session.add(group)
     db.session.commit()

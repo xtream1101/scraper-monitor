@@ -2,7 +2,7 @@ from flask.ext.security import current_user, RoleMixin, UserMixin
 from hashids import Hashids
 import uuid
 import datetime
-from app import db
+from app import app, db
 
 
 def generate_uid():
@@ -22,7 +22,7 @@ def datetime_to_str(timestamp):
 
 # Define models
 # TODO: make a config value
-SCHEMA = 'scraper_monitor'
+SCHEMA = app.config['SCHEMA']
 
 roles_users = db.Table(
     'roles_users',
@@ -82,6 +82,9 @@ class Organization(db.Model):
                              lazy='subquery')
     apikeys = db.relationship('ApiKey', backref='organization', cascade='all, delete',
                               lazy='subquery')
+
+    def __str__(self):
+        return self.name
 
     @property
     def serialize(self):
@@ -179,12 +182,14 @@ class ScraperRun(db.Model):
     start_time = db.Column(db.DateTime)
     stop_time = db.Column(db.DateTime)
     runtime = db.Column(db.Float)
-    total_urls = db.Column(db.Integer)
+    total_urls_hit = db.Column(db.Integer)
+    ref_data_count = db.Column(db.Integer)
+    ref_data_success_count = db.Column(db.Integer)
+    url_error_count = db.Column(db.Integer, default=0)
     num_items_scraped = db.Column(db.Integer)
     critical_count = db.Column(db.Integer, default=0)
     error_count = db.Column(db.Integer, default=0)
     warning_count = db.Column(db.Integer, default=0)
-    url_error_count = db.Column(db.Integer, default=0)
     scraper_key = db.Column(db.String(32), db.ForeignKey(SCHEMA + '.scraper.key'))
     group_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.group.id'))
     scraper_logs = db.relationship('ScraperLog', backref='scraper_run',
@@ -204,6 +209,9 @@ class ScraperRun(db.Model):
                 'startTime': datetime_to_str(self.start_time),
                 'stopTime': datetime_to_str(self.stop_time),
                 'runtime': self.runtime,
+                'urlHitCount': self.total_urls_hit,
+                'refDataCount': self.ref_data_count,
+                'refDataSuccessCount': self.ref_data_success_count,
                 'criticalCount': self.critical_count,
                 'errorCount': self.error_count,
                 'warningCount': self.warning_count,
@@ -242,6 +250,8 @@ class ScraperUrlError(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     url = db.Column(db.String(1024))
     reason = db.Column(db.String(256))
+    ref_id = db.Column(db.String(256))
+    ref_table = db.Column(db.String(256))
     status_code = db.Column(db.Integer())
     thread_name = db.Column(db.String(256))
     num_tries = db.Column(db.Integer())
