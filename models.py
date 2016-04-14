@@ -20,9 +20,10 @@ def datetime_to_str(timestamp):
     # The script is set to use UTC, so all times are in UTC
     return timestamp.isoformat() + "+0000"
 
-# Define models
-# TODO: make a config value
-SCHEMA = app.config['SCHEMA']
+if app.config.get('SCHEMA') is not None:
+    SCHEMA = app.config.get('SCHEMA')
+else:
+    SCHEMA = 'scraper_monitor'
 
 roles_users = db.Table(
     'roles_users',
@@ -182,6 +183,7 @@ class ScraperRun(db.Model):
     start_time = db.Column(db.DateTime)
     stop_time = db.Column(db.DateTime)
     runtime = db.Column(db.Float)
+    annotation = db.Column(db.Text)
     total_urls_hit = db.Column(db.Integer)
     ref_data_count = db.Column(db.Integer)
     ref_data_success_count = db.Column(db.Integer)

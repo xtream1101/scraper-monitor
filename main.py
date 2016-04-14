@@ -49,4 +49,4 @@ def before_first_request():
     db.session.commit()
 
 if __name__ == '__main__':
-    socketio.run(app, port=app.config['PORT'], debug=app.config['DEBUG'])
+    socketio.run(app, port=app.config.get('PORT'), debug=app.config.get('DEBUG'))

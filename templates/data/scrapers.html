@@ -1,16 +1,153 @@
 {% extends "layout.html" %}
 {% block body %}
-<div id="main" class="container">
+<div id="main">
+    <div class="accordion-table">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th class="scraper-name">Name</th>
+                    <th>Start Time</th>
+                    <th>Stop Time</th>
+                    <th>Runtime</th>
+                    <th>Log Criticals</th>
+                    <th>Log Errors</th>
+                    <th>Log Warnings</th>
+                    <th>URL Errors</th>
+                </tr>
+            </thead>
+            <tbody class="panel-heading" id="headingOne" data-toggle="collapse" href="#collapseOne">
+                <tr>
+                    <td class="scraper-name">Scraper XYZ</td>
+                    <td>2016-04-14 02:30 -4</td>
+                    <td>2016-04-14 02:30 -4</td>
+                    <td>00:04:18</td>
+                    <td>3</td>
+                    <td>4</td>
+                    <td>2</td>
+                    <td>2</td>
+                </tr>
+            </tbody>
+            <tbody id="collapseOne" class="collapse">
+                <tr>
+                    <td class="scraper-name"></td>
+                    <td>2016-04-14 02:30 -4</td>
+                    <td>2016-04-14 02:30 -4</td>
+                    <td>00:04:18</td>
+                    <td>3</td>
+                    <td>4</td>
+                    <td>2</td>
+                    <td>2</td>
+                </tr>
+                <tr>
+                    <td class="scraper-name"></td>
+                    <td>2016-04-14 02:30 -4</td>
+                    <td>2016-04-14 02:30 -4</td>
+                    <td>00:04:18</td>
+                    <td>3</td>
+                    <td>4</td>
+                    <td>2</td>
+                    <td>2</td>
+                </tr>
+            </tbody>
+        </table>
 
-    <h2>Running Scrapers</h2>
-    <div id="running">
-        
+        <table class="table">
+            <thead class="invisible">
+                <tr>
+                    <th class="scraper-name">Name</th>
+                    <th>Start Time</th>
+                    <th>Stop Time</th>
+                    <th>Runtime</th>
+                    <th>Log Criticals</th>
+                    <th>Log Errors</th>
+                    <th>Log Warnings</th>
+                    <th>URL Errors</th>
+                </tr>
+            </thead>
+            <tbody class="panel-heading" id="headingTwo" data-toggle="collapse" href="#collapseTwo">
+                <tr>
+                    <td class="scraper-name">Scraper XYZXYZXYZXYZXYZXYZXYZ</td>
+                    <td>2016-04-14 02:30 -4</td>
+                    <td>2016-04-14 02:30 -4</td>
+                    <td>00:04:18</td>
+                    <td>3</td>
+                    <td>4</td>
+                    <td>2</td>
+                    <td>2</td>
+                </tr>
+            </tbody>
+            <tbody id="collapseTwo" class="collapse">
+                <tr>
+                    <td class="scraper-name"></td>
+                    <td>2016-04-14 02:30 -4</td>
+                    <td>2016-04-14 02:30 -4</td>
+                    <td>00:04:18</td>
+                    <td>3</td>
+                    <td>4</td>
+                    <td>2</td>
+                    <td>2</td>
+                </tr>
+                <tr>
+                    <td class="scraper-name"></td>
+                    <td>2016-04-14 02:30 -4</td>
+                    <td>2016-04-14 02:30 -4</td>
+                    <td>00:04:18</td>
+                    <td>3</td>
+                    <td>4</td>
+                    <td>2</td>
+                    <td>2</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <table class="table">
+            <thead class="invisible">
+                <tr>
+                    <th class="scraper-name">Name</th>
+                    <th>Start Time</th>
+                    <th>Stop Time</th>
+                    <th>Runtime</th>
+                    <th>Log Criticals</th>
+                    <th>Log Errors</th>
+                    <th>Log Warnings</th>
+                    <th>URL Errors</th>
+                </tr>
+            </thead>
+            <tbody class="panel-heading" id="headingThree" data-toggle="collapse" href="#collapseThree">
+                <tr>
+                    <td class="scraper-name">Scraper XYZ XYZ XYZ XYZ</td>
+                    <td>2016-04-14 02:30 -4</td>
+                    <td>2016-04-14 02:30 -4</td>
+                    <td>00:04:18</td>
+                    <td>3</td>
+                    <td>4</td>
+                    <td>2</td>
+                    <td>2</td>
+                </tr>
+            </tbody>
+            <tbody id="collapseThree" class="collapse">
+                <tr>
+                    <td class="scraper-name"></td>
+                    <td>2016-04-14 02:30 -4</td>
+                    <td>2016-04-14 02:30 -4</td>
+                    <td>00:04:18</td>
+                    <td>3</td>
+                    <td>4</td>
+                    <td>2</td>
+                    <td>2</td>
+                </tr>
+                <tr>
+                    <td class="scraper-name"></td>
+                    <td>2016-04-14 02:30 -4</td>
+                    <td>2016-04-14 02:30 -4</td>
+                    <td>00:04:18</td>
+                    <td>3</td>
+                    <td>4</td>
+                    <td>2</td>
+                    <td>2</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
-
-    <h2>Finished Scrapers (History)</h2>
-    <div id="finished">
-        
-    </div>
-
 </div>
 {% endblock %}

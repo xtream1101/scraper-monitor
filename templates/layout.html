@@ -12,7 +12,7 @@
 	</head>
 	<body>
 
-		<div class="nav-side-menu">
+		<div id="app-menu">
 			<div class="brand">Scraper Monitor</div>
 			<i class="fa fa-bars fa-2x toggle-btn" data-toggle="collapse" data-target="#menu-content"></i>
 			<div class="menu-list">
@@ -49,11 +49,8 @@
 				</ul>
 			</div>
 		</div>
-		<div id="content">
-			<div id="inner">
-				{% block body %}{% endblock %}
-			</div>
-			<hr>
+		<div id="app-container">
+			{% block body %}{% endblock %}
 			<footer id="footer">
 				<p>&copy; Eddy Hintze 2016</p>		
 			</footer>
