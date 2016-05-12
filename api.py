@@ -218,6 +218,8 @@ class APIScraperErrorUrl(Resource):
         url_error.run_uuid = client_data['scraperRun']
         url_error.num_tries = data.get('numTries')
         url_error.reason = data.get('reason')
+        url_error.ref_id = data.get('ref_id')
+        url_error.ref_table = data.get('ref_table')
         url_error.status_code = data.get('statusCode')
         url_error.thread_name = data.get('threadName')
         url_error.url = data.get('url')
