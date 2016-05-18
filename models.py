@@ -63,11 +63,11 @@ class User(db.Model, UserMixin):
     active = db.Column(db.Boolean())
     confirmed_at = db.Column(db.DateTime)
     roles = db.relationship('Role', secondary=roles_users,
-                            backref=db.backref('users', lazy='subquery'))
+                            backref=db.backref('users', lazy='dynamic'))
     organizations_owner = db.relationship('Organization', backref='user',
-                                          lazy='subquery')
+                                          lazy='dynamic')
     organizations = db.relationship('Organization', secondary=organizations_users,
-                                    backref=db.backref('users', lazy='subquery'))
+                                    backref=db.backref('users', lazy='dynamic'))
 
     def __str__(self):
         return self.username
@@ -80,9 +80,9 @@ class Organization(db.Model):
     name = db.Column(db.String(128), unique=True)
     owner_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.user.id'))
     groups = db.relationship('Group', backref='organization', cascade='all, delete',
-                             lazy='subquery')
+                             lazy='dynamic')
     apikeys = db.relationship('ApiKey', backref='organization', cascade='all, delete',
-                              lazy='subquery')
+                              lazy='dynamic')
 
     def __str__(self):
         return self.name
@@ -131,8 +131,8 @@ class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64))
     organization_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.organization.id'))
-    scrapers = db.relationship('Scraper', backref='group', lazy='subquery')
-    scraper_runs = db.relationship('ScraperRun', backref='group', lazy='subquery')
+    scrapers = db.relationship('Scraper', backref='group', lazy='dynamic')
+    scraper_runs = db.relationship('ScraperRun', backref='group', lazy='dynamic')
 
     @property
     def serialize(self):
@@ -154,7 +154,7 @@ class Scraper(db.Model):
     time_added = db.Column(db.DateTime, default=datetime.datetime.now)
     group_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.group.id'))
     scraper_runs = db.relationship('ScraperRun', backref='scraper',
-                                   cascade='all, delete-orphan', lazy='subquery')
+                                   cascade='all, delete-orphan', lazy='dynamic')
 
     def __init__(self, name, owner):
         self.name = name
@@ -195,9 +195,9 @@ class ScraperRun(db.Model):
     scraper_key = db.Column(db.String(32), db.ForeignKey(SCHEMA + '.scraper.key'))
     group_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.group.id'))
     scraper_logs = db.relationship('ScraperLog', backref='scraper_run',
-                                   cascade='all, delete', lazy='subquery')
+                                   cascade='all, delete', lazy='dynamic')
     scraper_url_errors = db.relationship('ScraperUrlError', backref='scraper_run',
-                                         cascade='all, delete', lazy='subquery')
+                                         cascade='all, delete', lazy='dynamic')
 
     @property
     def serialize(self):
