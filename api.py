@@ -251,4 +251,3 @@ api.add_resource(APIScraperDataStop, '/data/stop')
 
 # Scraper errors that are not logs
 api.add_resource(APIScraperErrorUrl, '/error/url')
-

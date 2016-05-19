@@ -1,5 +1,5 @@
 import logging
-from flask import render_template, request, jsonify, abort
+from flask import render_template, request, jsonify, abort, redirect, url_for
 from flask.ext.security import current_user, login_required
 from flask_socketio import emit, join_room
 from app import app, socketio
@@ -436,16 +436,29 @@ def manage_organizations_delete(organization_id):
 ###############################################################################
 ###############################################################################
 ##
-##                Scraper Run Data
+#                 Scraper Run Data
 ##
 ###############################################################################
 ###############################################################################
-@socketio.on('connect', namespace='/data/scrapers')
-def connect_data_scrapers():
+@socketio.on('connect', namespace='/data/scrapers/dev')
+def connect_data_scrapers_dev():
     if not current_user.is_authenticated:
         # If user is not logged in, deny them access
         return False
 
+    get_data_scrapers('dev')
+
+
+@socketio.on('connect', namespace='/data/scrapers/prod')
+def connect_data_scrapers_prod():
+    if not current_user.is_authenticated:
+        # If user is not logged in, deny them access
+        return False
+
+    get_data_scrapers('prod')
+
+
+def get_data_scrapers(environment):
     scraper_list = []
     for organization in current_user.organizations:
         join_room('organization-' + str(organization.id))
@@ -453,16 +466,28 @@ def connect_data_scrapers():
             for scraper in group.scrapers:
                 runs = ScraperRun.query.filter_by(group=group)\
                                        .filter_by(scraper_key=scraper.key)\
+                                       .filter_by(environment=environment.upper())\
                                        .order_by(ScraperRun.stop_time.desc())\
                                        .limit(5).all()
 
                 run_list = [i.serialize for i in runs]
                 scraper_list.extend(run_list)
 
-    emit('data-scrapers', {'data': scraper_list, 'action': 'add'})
+    emit('data-scrapers-' + environment.lower(), {'data': scraper_list, 'action': 'add'})
 
 
 @app.route('/data/scrapers', methods=['GET'])
 @login_required
 def data_scrapers():
-    return render_template('data/scrapers.html')
+    # Default to prod data
+    return redirect(url_for('data_scrapers_env', environment='prod'))
+
+
+@app.route('/data/scrapers/<string:environment>', methods=['GET'])
+@login_required
+def data_scrapers_env(environment):
+    # print("app", environment)
+    if environment not in ['dev', 'prod']:
+        abort(404)
+
+    return render_template('data/scrapers.html', environment=environment)

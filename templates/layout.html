@@ -35,7 +35,8 @@
 						<a href="#"><i class="fa fa-gift fa-lg"></i> Scraper Data <span class="arrow"></span></a>
 					</li>
 					<ul class="sub-menu collapse" id="data">
-						<li id="menu-data-1" class="sub-menu-item"><a href="{{ url_for('data_scrapers') }}">Scrapers</a></li>
+						<li id="menu-data-1" class="sub-menu-item"><a href="{{ url_for('data_scrapers') }}/prod">Scrapers (PROD)</a></li>
+						<li id="menu-data-2" class="sub-menu-item"><a href="{{ url_for('data_scrapers') }}/dev">Scrapers (DEV)</a></li>
 					</ul>
 					<li><a href="#"><i class="fa fa-user fa-lg"></i> Profile ({{ current_user.username }})</a></li>
 					<li><a href="{{ url_for('security.logout') }}">Logout</a></li>

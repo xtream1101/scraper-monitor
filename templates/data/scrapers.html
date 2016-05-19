@@ -1,7 +1,9 @@
 {% extends "layout.html" %}
 {% block body %}
 <div id="main">
-
+{% if environment.lower() == 'dev' %}
+<h1 style="color: red;">DEV DATA</h1>
+{% endif %}
 <h2>Running Scrapers</h2>
     <div id="running" class="accordion-table">
         

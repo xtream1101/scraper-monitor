@@ -105,14 +105,16 @@ function initPage(){
         socketListen = 'manage-organizations';
         $('#add-organization').on( "submit", submitForm);
         $('#add-organization-user').on( "submit", submitForm);
-    }else if( page === '/data/scrapers' ){
-        socketListen = 'data-scrapers';
+    }else if( page === '/data/scrapers/dev'){
+        socketListen = 'data-scrapers-dev';
+    }else if( page === '/data/scrapers/prod'){
+        socketListen = 'data-scrapers-prod';
     }
 
     if( socketListen !== null ){
         socket.on(socketListen, function( data ){
             console.log("WebSocket: ", data);
-            if( page === '/data/scrapers' ){
+            if( page === '/data/scrapers/dev' || page === '/data/scrapers/prod' ){
                 addScraper(data)
             }else if( page === '/manage/organizations' ){
                 addOrganizations(data)
