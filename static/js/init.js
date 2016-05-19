@@ -5,26 +5,49 @@ _.templateSettings = {interpolate: /\{\{(.+?)\}\}/g};
 var page = window.location.pathname;
 var url = window.location.origin + page;
 
+
 var _template = {
-    scraperRun: _.template(
-        '<div id="run-{{rowId}}" class="scraper-run">' +
-            '<span class="uuid"><span class="value">{{uuid}}</span></span>  | ' +
-            '<span class="startTime"><span class="value">{{startTime}}</span></span>  | ' +
-            '<span class="stopTime"><span class="value">{{stopTime}}</span></span>  | ' +
-            '<span class="runtime"><span class="value">{{runtime}}</span></span>  | ' +
-            '<span class="criticalCount"><span class="value">{{criticalCount}}</span></span>  | ' +
-            '<span class="errorCount"><span class="value">{{errorCount}}</span></span>  | ' +
-            '<span class="warningCount"><span class="value">{{warningCount}}</span></span> | ' +
-            '<span class="urlErrorCount"><span class="value">{{urlErrorCount}}</span></span>' +
-        '</div>'
+    scraperWrapper: _.template(
+        '<table id={{runClass}}-{{scraperKey}} class="table">' +
+            '<thead class="invisible">' +
+                '<tr>' +
+                    '<th class="scraper-name">Name</th>' +
+                    '<th>Start Time</th>' +
+                    '<th>Stop Time</th>' +
+                    '<th>Runtime</th>' +
+                    '<th>Log Criticals</th>' +
+                    '<th>Log Errors</th>' +
+                    '<th>Log Warnings</th>' +
+                    '<th>URL Errors</th>' +
+                '</tr>' +
+            '</thead>' +
+            '<tbody class="panel-heading" data-toggle="collapse" href="#collapse-{{runClass}}-{{scraperKey}}">' +
+                '<tr id="{{uuid}}">' +
+                    '<td class="scraper-name">{{name}}</td>' +
+                    '<td>{{startTime}}</td>' +
+                    '<td>{{stopTime}}</td>' +
+                    '<td></td>' +
+                    '<td>{{criticalCount}}</td>' +
+                    '<td>{{errorCount}}</td>' +
+                    '<td>{{warningCount}}</td>' +
+                    '<td>{{urlErrorCount}}</td>' +
+                '</tr>' +
+            '</tbody>' +
+            '<tbody id="collapse-{{runClass}}-{{scraperKey}}" class="collapse runs">' +
+            '</tbody>' +
+        '</table>'
     ),
-    scraperParent: _.template(
-        '<div id="{{scraperKey}}" class="scraper-parent {{runClass}}">' +
-            '<b><span class="name">Scraper: <span class="value">{{name}}</span></span> | ' +
-            '<span class="key">Key: <span class="value">{{scraperKey}}</span></span></b> ' +
-            '<span class="link"><a href="/data/scrapers/{{scraperKey}}">Go To</a><br />' +
-            '<div class="runs"></div>' +
-        '</div>'
+    scraperRun: _.template(
+        '<tr id="{{uuid}}">' +
+            '<td class="scraper-name"></td>' +
+            '<td>{{startTime}}</td>' +
+            '<td>{{stopTime}}</td>' +
+            '<td></td>' +
+            '<td>{{criticalCount}}</td>' +
+            '<td>{{errorCount}}</td>' +
+            '<td>{{warningCount}}</td>' +
+            '<td>{{urlErrorCount}}</td>' +
+        '</tr>'
     ),
     organization: _.template(
         '<div id="{{rowId}}" class="organization">' +
@@ -36,6 +59,15 @@ var _template = {
     ),
     deleteBtn: _.template('<button class="btn-del" data-id="{{rowId}}">Delete</button>'),
 }
+
+var _utils = {
+    formatTime: function( time ){
+        if( time === null ){
+            return '';
+        }
+        return moment(time).format("YYYY-MM-DD HH:mm:ss")
+    },
+};
 
 $(function(){
     initPage();
@@ -124,38 +156,44 @@ function addScraper( response ){
 
     $.each( data, function( i, scraper ){
         if( action === 'add' ){
+            scraper.startTime = _utils.formatTime(scraper.startTime)
             if( scraper.stopTime !== null ){
+                scraper.stopTime = _utils.formatTime(scraper.stopTime)
                 // Check if scraper is not in finished
-                var scraperParentIdent = '#' + scraper.scraperKey + '.finished';
+                var scraperParentIdent = '#finished-' + scraper.scraperKey;
                 if( $(scraperParentIdent).length === 0 ){
                     scraper.runClass = 'finished';
-                    $finished.append(_template.scraperParent(scraper))
+                    $finished.append(_template.scraperWrapper(scraper))
+                }else{
+                    var $scraperParent = $(scraperParentIdent).find('.runs');
+                    // Add scraper run to parent in $running
+                    $scraperParent.append(_template.scraperRun(scraper));
                 }
-                var $scraperParent = $(scraperParentIdent).find('.runs');
-                // Add scraper run to parent in $running
-                $scraperParent.append(_template.scraperRun(scraper));
             }else{
                 // Not in running list so add it
                 // Check if scraper run has a scraper parent in $running
-                var scraperParentIdent = '#' + scraper.scraperKey + '.running';
+                var scraperParentIdent = '#running-' + scraper.scraperKey;
                 if( $(scraperParentIdent).length === 0 ){
                     scraper.runClass = 'running';
-                    $running.append(_template.scraperParent(scraper));
+                    $running.append(_template.scraperWrapper(scraper));
+                }else{
+                    var $scraperParent = $(scraperParentIdent).find('.runs');
+                    // Add scraper run to parent in $running
+                    $scraperParent.append(_template.scraperRun(scraper));
                 }
-                var $scraperParent = $(scraperParentIdent).find('.runs');
-                // Add scraper run to parent in $running
-                $scraperParent.append(_template.scraperRun(scraper));
             }
         }else if( action === 'update' || action === 'increment' ){
             var $scraperRun = $running.find('#run-' + scraper.rowId);
             // Update the values
             $.each( scraper, function( field, value ){
                 var $field = $scraperRun.find('.' + field).find('.value');
+
                 if( action === 'increment' ){
                     // Get the current value and add to it
                     var currVal = parseInt($field.text());
                     value = currVal + value;
                 }
+
                 $field.html(value);
             });
 
@@ -169,15 +207,21 @@ function addScraper( response ){
             }
         }
     });
+
+    // Display the headers for the first table in the list
+    $('#running').find('thead').first().removeClass('invisible');
+    $('#finished').find('thead').first().removeClass('invisible');
 }
 
 function moveScraperFinished( $scraperRun, scraper ){
     var $finished = $('#finished');
-    var scraperParentIdent = '#' + scraper.scraperKey + '.finished';
+    var scraperParentIdent = '#finished-' + scraper.scraperKey;
+
     if( $(scraperParentIdent).length === 0 ){
         scraper.runClass = 'finished';
         $finished.append(_template.scraperParent(scraper));
     }
+
     var $scraperParent = $(scraperParentIdent).find('.runs');
     // Add scraper run to parent in $finished
     $scraperParent.prepend($scraperRun);
@@ -207,14 +251,17 @@ function addToTable( response, tableName ){
 
     $.each( rows, function( i, rowData ){
         var dtRowId = table.row('[id=jdt-' + rowData.rowId + ']').index();
+
         if( action === 'update' || action === 'add' || action === 'increment'){
             rowData.action = _template.deleteBtn(rowData);
-            rowData.timeAdded = moment(rowData.timeAdded).format("YYYY-MM-DD HH:mm")
+            rowData.timeAdded = _utils.formatTime(rowData.timeAdded)
+
             if( dtRowId >= 0 ){
                 table.row(dtRowId).data(rowData).draw();
             }else{
                 table.row.add(rowData).draw();
             }
+
         }else if( action === 'delete' ){
             if( dtRowId >= 0 ){
                 table.row(dtRowId).remove().draw();
