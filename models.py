@@ -185,10 +185,10 @@ class ScraperRun(db.Model):
     runtime = db.Column(db.Float)
     annotation = db.Column(db.Text)
     total_urls_hit = db.Column(db.Integer)
+    num_rows_added_to_db = db.Column(db.Integer)
     ref_data_count = db.Column(db.Integer)
     ref_data_success_count = db.Column(db.Integer)
     url_error_count = db.Column(db.Integer, default=0)
-    num_items_scraped = db.Column(db.Integer)
     critical_count = db.Column(db.Integer, default=0)
     error_count = db.Column(db.Integer, default=0)
     warning_count = db.Column(db.Integer, default=0)
@@ -211,7 +211,8 @@ class ScraperRun(db.Model):
                 'startTime': datetime_to_str(self.start_time),
                 'stopTime': datetime_to_str(self.stop_time),
                 'runtime': self.runtime,
-                'urlHitCount': self.total_urls_hit,
+                'totalUrlsHit': self.total_urls_hit,
+                'numRowsAddedToDb': self.num_rows_added_to_db,
                 'refDataCount': self.ref_data_count,
                 'refDataSuccessCount': self.ref_data_success_count,
                 'criticalCount': self.critical_count,

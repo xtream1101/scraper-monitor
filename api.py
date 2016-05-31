@@ -113,7 +113,7 @@ class APIScraperLogging(Resource):
 
         socketio.emit('data-scrapers',
                       {'data': data, 'action': 'increment'},
-                      namespace='/data/scrapers',
+                      namespace='/data/scrapers/{}'.format(client_data['environment'].lower()),
                       room='organization-' + str(log.scraper_run.scraper.group.organization.id)
                       )
 
@@ -125,9 +125,6 @@ class APIScraperLogging(Resource):
 
 class APIScraperDataStart(Resource):
     method_decorators = [validate_api_scraper_key, authenticate_api]
-
-    def get(self):
-        return {'sddfs': 'adsh'}
 
     def post(self):
         rdata = {'success': False,
@@ -149,10 +146,11 @@ class APIScraperDataStart(Resource):
         db.session.add(run)
         db.session.commit()
 
+        print("\n'{}'\n".format(client_data['environment']))
         data = [run.serialize]
         socketio.emit('data-scrapers',
                       {'data': data, 'action': 'add'},
-                      namespace='/data/scrapers',
+                      namespace='/data/scrapers/{}'.format(client_data['environment'].lower()),
                       room='organization-' + str(run.scraper.group.organization_id)
                       )
 
@@ -174,8 +172,10 @@ class APIScraperDataStop(Resource):
         data = request.json
 
         run = ScraperRun.query.filter_by(uuid=client_data['scraperRun']).scalar()
-        run.total_urls = data.get('totalUrls')
-        run.num_items_scraped = data.get('itemsScraped')
+        run.total_urls_hit = data.get('totalUrls')
+        run.ref_data_count = data.get('refDataCount')
+        run.ref_data_success_count = data.get('refDataSuccessCount')
+        run.num_rows_added_to_db = data.get('rowsAddedToDb')
         run.stop_time = datetime.datetime.strptime(data['stopTime'], "%Y-%m-%d %H:%M:%S.%f")
         # Calc runtime and get counts
         runtime = run.stop_time - run.start_time
@@ -193,7 +193,7 @@ class APIScraperDataStop(Resource):
         data = [run.serialize]
         socketio.emit('data-scrapers',
                       {'data': data, 'action': 'update'},
-                      namespace='/data/scrapers',
+                      namespace='/data/scrapers/{}'.format(client_data['environment'].lower()),
                       room='organization-' + str(run.scraper.group.organization.id)
                       )
 
@@ -233,7 +233,7 @@ class APIScraperErrorUrl(Resource):
 
         socketio.emit('data-scrapers',
                       {'data': data, 'action': 'increment', 'foo': 'bar'},
-                      namespace='/data/scrapers',
+                      namespace='/data/scrapers/{}'.format(client_data['environment'].lower()),
                       room='organization-' + str(url_error.scraper_run.scraper.group.organization.id)
                       )
 

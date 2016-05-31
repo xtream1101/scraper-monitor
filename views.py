@@ -473,7 +473,7 @@ def get_data_scrapers(environment):
                 run_list = [i.serialize for i in runs]
                 scraper_list.extend(run_list)
 
-    emit('data-scrapers-' + environment.lower(), {'data': scraper_list, 'action': 'add'})
+    emit('data-scrapers', {'data': scraper_list, 'action': 'add'})
 
 
 @app.route('/data/scrapers', methods=['GET'])

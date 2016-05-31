@@ -26,7 +26,7 @@ var _template = {
                     '<td class="scraper-name">{{name}}</td>' +
                     '<td>{{startTime}}</td>' +
                     '<td>{{stopTime}}</td>' +
-                    '<td></td>' +
+                    '<td>{{runtime}}</td>' +
                     '<td>{{criticalCount}}</td>' +
                     '<td>{{errorCount}}</td>' +
                     '<td>{{warningCount}}</td>' +
@@ -42,7 +42,7 @@ var _template = {
             '<td class="scraper-name"></td>' +
             '<td>{{startTime}}</td>' +
             '<td>{{stopTime}}</td>' +
-            '<td></td>' +
+            '<td>{{runtime}}</td>' +
             '<td>{{criticalCount}}</td>' +
             '<td>{{errorCount}}</td>' +
             '<td>{{warningCount}}</td>' +
@@ -105,10 +105,8 @@ function initPage(){
         socketListen = 'manage-organizations';
         $('#add-organization').on( "submit", submitForm);
         $('#add-organization-user').on( "submit", submitForm);
-    }else if( page === '/data/scrapers/dev'){
-        socketListen = 'data-scrapers-dev';
-    }else if( page === '/data/scrapers/prod'){
-        socketListen = 'data-scrapers-prod';
+    }else if( page === '/data/scrapers/dev' || page === '/data/scrapers/prod'){
+        socketListen = 'data-scrapers';
     }
 
     if( socketListen !== null ){
@@ -157,6 +155,9 @@ function addScraper( response ){
     var $finished = $('#finished');
 
     $.each( data, function( i, scraper ){
+        if( typeof scraper.runtime === 'undefined' ){
+            scraper.runtime = null;
+        }
         if( action === 'add' ){
             scraper.startTime = _utils.formatTime(scraper.startTime)
             if( scraper.stopTime !== null ){
