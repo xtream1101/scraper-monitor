@@ -22,10 +22,19 @@ config.set_main_option('sqlalchemy.url',
                        current_app.config.get('SQLALCHEMY_DATABASE_URI'))
 target_metadata = current_app.extensions['migrate'].db.metadata
 
+current_schema = current_app.config['SCHEMA']
+
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+def include_schemas(names):
+    # produce an include object function that filters on the given schemas
+    def include_object(object, name, type_, reflected, compare_to):
+        if type_ == "table":
+            return object.schema in names
+        return True
+    return include_object
 
 
 def run_migrations_offline():
@@ -73,6 +82,8 @@ def run_migrations_online():
     context.configure(connection=connection,
                       target_metadata=target_metadata,
                       process_revision_directives=process_revision_directives,
+                      include_schemas=True,
+                      include_object=include_schemas([None, current_schema]),
                       **current_app.extensions['migrate'].configure_args)
 
     try:
