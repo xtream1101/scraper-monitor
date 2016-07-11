@@ -55,13 +55,12 @@ def manage_apikeys():
                  'message': '',
                  }
         name = request.form['name'].strip()
-        host = request.form['host'].strip()
         organization_id = request.form['organization'].strip()
         if not name:
             rdata['message'] = "Name is required"
             rdata['success'] = False
         else:
-            apikey = ApiKey(name, host)
+            apikey = ApiKey(name)
             apikey.organization = Organization.query.get(organization_id)
 
             db.session.add(apikey)

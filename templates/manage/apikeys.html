@@ -9,9 +9,6 @@
         placeholder="Key name" value="{{ request.form.name }}"
         required>
 
-        <input type="text" id="host" name="host" class="input-xlarge"
-        placeholder="Allowed Host" value="{{ request.form.host }}">
-
         <select id="organization" class="select-organization" name="organization">
             <!-- TODO: Default to current user -->
             {%- for organization in current_user.organizations %}
@@ -30,7 +27,6 @@
                 <th>Organization</th>
                 <th>Name</th>
                 <th>Key</th>
-                <th>Host</th>
                 <th>Date</th>
                 <th>Actions</th>
             </tr>

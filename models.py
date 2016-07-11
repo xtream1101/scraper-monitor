@@ -103,7 +103,6 @@ class ApiKey(db.Model):
     __table_args__ = {'schema': SCHEMA}
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64))
-    host = db.Column(db.String(255))
     key = db.Column(db.String(36), default=generate_uid, unique=True)
     time_added = db.Column(db.DateTime, default=datetime.datetime.now)
     organization_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.organization.id'))
@@ -119,7 +118,6 @@ class ApiKey(db.Model):
                 'rowId': self.id,
                 'organization': self.organization.name,
                 'name': self.name,
-                'host': self.host,
                 'key': self.key,
                 'timeAdded': datetime_to_str(self.time_added),
                 }

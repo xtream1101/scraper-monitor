@@ -1,13 +1,13 @@
 """empty message
 
-Revision ID: 7b19715873d2
+Revision ID: 669b1347d9df
 Revises: None
-Create Date: 2016-07-11 14:24:27.862566
+Create Date: 2016-07-11 16:26:47.615662
 
 """
 
 # revision identifiers, used by Alembic.
-revision = '7b19715873d2'
+revision = '669b1347d9df'
 down_revision = None
 
 from alembic import op
@@ -22,7 +22,7 @@ def upgrade():
     sa.Column('description', sa.String(length=255), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name'),
-    schema='sm_dev2'
+    schema='sm_dev'
     )
     op.create_table('user',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -36,23 +36,23 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('email'),
     sa.UniqueConstraint('username'),
-    schema='sm_dev2'
+    schema='sm_dev'
     )
     op.create_table('organization',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=128), nullable=True),
     sa.Column('owner_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['owner_id'], ['sm_dev2.user.id'], ),
+    sa.ForeignKeyConstraint(['owner_id'], ['sm_dev.user.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name'),
-    schema='sm_dev2'
+    schema='sm_dev'
     )
     op.create_table('roles_users',
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('role_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['role_id'], ['sm_dev2.role.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['sm_dev2.user.id'], ),
-    schema='sm_dev2'
+    sa.ForeignKeyConstraint(['role_id'], ['sm_dev.role.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['sm_dev.user.id'], ),
+    schema='sm_dev'
     )
     op.create_table('apikey',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -61,25 +61,25 @@ def upgrade():
     sa.Column('key', sa.String(length=36), nullable=True),
     sa.Column('time_added', sa.DateTime(), nullable=True),
     sa.Column('organization_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['organization_id'], ['sm_dev2.organization.id'], ),
+    sa.ForeignKeyConstraint(['organization_id'], ['sm_dev.organization.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('key'),
-    schema='sm_dev2'
+    schema='sm_dev'
     )
     op.create_table('group',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=64), nullable=True),
     sa.Column('organization_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['organization_id'], ['sm_dev2.organization.id'], ),
+    sa.ForeignKeyConstraint(['organization_id'], ['sm_dev.organization.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    schema='sm_dev2'
+    schema='sm_dev'
     )
     op.create_table('organizations_users',
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('organization_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['organization_id'], ['sm_dev2.organization.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['sm_dev2.user.id'], ),
-    schema='sm_dev2'
+    sa.ForeignKeyConstraint(['organization_id'], ['sm_dev.organization.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['sm_dev.user.id'], ),
+    schema='sm_dev'
     )
     op.create_table('scraper',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -88,10 +88,10 @@ def upgrade():
     sa.Column('key', sa.String(length=32), nullable=True),
     sa.Column('time_added', sa.DateTime(), nullable=True),
     sa.Column('group_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['group_id'], ['sm_dev2.group.id'], ),
+    sa.ForeignKeyConstraint(['group_id'], ['sm_dev.group.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('key'),
-    schema='sm_dev2'
+    schema='sm_dev'
     )
     op.create_table('run',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -111,11 +111,11 @@ def upgrade():
     sa.Column('warning_count', sa.Integer(), nullable=True),
     sa.Column('scraper_key', sa.String(length=32), nullable=True),
     sa.Column('group_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['group_id'], ['sm_dev2.group.id'], ),
-    sa.ForeignKeyConstraint(['scraper_key'], ['sm_dev2.scraper.key'], ),
+    sa.ForeignKeyConstraint(['group_id'], ['sm_dev.group.id'], ),
+    sa.ForeignKeyConstraint(['scraper_key'], ['sm_dev.scraper.key'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('uuid'),
-    schema='sm_dev2'
+    schema='sm_dev'
     )
     op.create_table('run_log',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -138,9 +138,9 @@ def upgrade():
     sa.Column('thread_name', sa.String(length=256), nullable=True),
     sa.Column('time_collected', sa.DateTime(), nullable=True),
     sa.Column('run_uuid', sa.String(length=32), nullable=True),
-    sa.ForeignKeyConstraint(['run_uuid'], ['sm_dev2.run.uuid'], ),
+    sa.ForeignKeyConstraint(['run_uuid'], ['sm_dev.run.uuid'], ),
     sa.PrimaryKeyConstraint('id'),
-    schema='sm_dev2'
+    schema='sm_dev'
     )
     op.create_table('run_url_error',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -153,24 +153,24 @@ def upgrade():
     sa.Column('num_tries', sa.Integer(), nullable=True),
     sa.Column('time_collected', sa.DateTime(), nullable=True),
     sa.Column('run_uuid', sa.String(length=32), nullable=True),
-    sa.ForeignKeyConstraint(['run_uuid'], ['sm_dev2.run.uuid'], ),
+    sa.ForeignKeyConstraint(['run_uuid'], ['sm_dev.run.uuid'], ),
     sa.PrimaryKeyConstraint('id'),
-    schema='sm_dev2'
+    schema='sm_dev'
     )
     ### end Alembic commands ###
 
 
 def downgrade():
     ### commands auto generated by Alembic - please adjust! ###
-    op.drop_table('run_url_error', schema='sm_dev2')
-    op.drop_table('run_log', schema='sm_dev2')
-    op.drop_table('run', schema='sm_dev2')
-    op.drop_table('scraper', schema='sm_dev2')
-    op.drop_table('organizations_users', schema='sm_dev2')
-    op.drop_table('group', schema='sm_dev2')
-    op.drop_table('apikey', schema='sm_dev2')
-    op.drop_table('roles_users', schema='sm_dev2')
-    op.drop_table('organization', schema='sm_dev2')
-    op.drop_table('user', schema='sm_dev2')
-    op.drop_table('role', schema='sm_dev2')
+    op.drop_table('run_url_error', schema='sm_dev')
+    op.drop_table('run_log', schema='sm_dev')
+    op.drop_table('run', schema='sm_dev')
+    op.drop_table('scraper', schema='sm_dev')
+    op.drop_table('organizations_users', schema='sm_dev')
+    op.drop_table('group', schema='sm_dev')
+    op.drop_table('apikey', schema='sm_dev')
+    op.drop_table('roles_users', schema='sm_dev')
+    op.drop_table('organization', schema='sm_dev')
+    op.drop_table('user', schema='sm_dev')
+    op.drop_table('role', schema='sm_dev')
     ### end Alembic commands ###
