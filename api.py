@@ -4,6 +4,7 @@ import logging
 from flask.ext.restful import Resource, abort
 from app import socketio, api
 from models import *
+from pprint import pprint
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +104,10 @@ class APIScraperLogging(Resource):
         db.session.add(log)
         db.session.commit()
 
-        data = [{'rowId': client_data['scraperRun']}]
+        data = [{'rowId': client_data['scraperRun'],
+                 'scraperKey': client_data['scraperKey'],
+                 'groupId': log.scraper_run.scraper.group.id,
+                 }]
         if log.level_name == 'CRITICAL':
             data[0]['criticalCount'] = 1
         if log.level_name == 'ERROR':
@@ -114,7 +118,7 @@ class APIScraperLogging(Resource):
         socketio.emit('data-scrapers',
                       {'data': data, 'action': 'increment'},
                       namespace='/data/scrapers/{}'.format(client_data['environment'].lower()),
-                      room='organization-' + str(log.scraper_run.scraper.group.organization.id)
+                      room='organization-' + str(log.scraper_run.scraper.group.organization_id)
                       )
 
         rdata['success'] = True
@@ -146,10 +150,10 @@ class APIScraperDataStart(Resource):
         db.session.add(run)
         db.session.commit()
 
-        print("\n'{}'\n".format(client_data['environment']))
         data = [run.serialize]
+
         socketio.emit('data-scrapers',
-                      {'data': data, 'action': 'add'},
+                      {'data': data, 'action': 'start'},
                       namespace='/data/scrapers/{}'.format(client_data['environment'].lower()),
                       room='organization-' + str(run.scraper.group.organization_id)
                       )
@@ -190,9 +194,14 @@ class APIScraperDataStop(Resource):
 
         db.session.commit()
 
-        data = [run.serialize]
+        data = [{'rowId': client_data['scraperRun'],
+                 'scraperKey': client_data['scraperKey'],
+                 'stopTime': data['stopTime'],
+                 'groupId': run.scraper.group.id,
+                 }]
+
         socketio.emit('data-scrapers',
-                      {'data': data, 'action': 'update'},
+                      {'data': data, 'action': 'stop'},
                       namespace='/data/scrapers/{}'.format(client_data['environment'].lower()),
                       room='organization-' + str(run.scraper.group.organization.id)
                       )
@@ -232,7 +241,7 @@ class APIScraperErrorUrl(Resource):
                  }]
 
         socketio.emit('data-scrapers',
-                      {'data': data, 'action': 'increment', 'foo': 'bar'},
+                      {'data': data, 'action': 'increment'},
                       namespace='/data/scrapers/{}'.format(client_data['environment'].lower()),
                       room='organization-' + str(url_error.scraper_run.scraper.group.organization.id)
                       )

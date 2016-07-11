@@ -95,27 +95,32 @@ function initPage(){
     if( page === '/manage/apikeys' ){
         socketListen = 'manage-apikeys';
         $('#add-apikey').on( "submit", submitForm);
+
     }else if( page === '/manage/scrapers' ){
         socketListen = 'manage-scrapers';
         $('#add-scraper').on( "submit", submitForm);
+
     }else if( page === '/manage/groups' ){
         socketListen = 'manage-groups';
         $('#add-group').on( "submit", submitForm);
+
     }else if( page === '/manage/organizations' ){
         socketListen = 'manage-organizations';
         $('#add-organization').on( "submit", submitForm);
         $('#add-organization-user').on( "submit", submitForm);
-    }else if( page === '/data/scrapers/dev' || page === '/data/scrapers/prod'){
+
+    }else if( page === '/data/scrapers/dev' || page === '/data/scrapers/prod' ){
         socketListen = 'data-scrapers';
     }
 
     if( socketListen !== null ){
         socket.on(socketListen, function( data ){
             console.log("WebSocket: ", data);
+            console.log( new ScraperRunTable() );
             if( page === '/data/scrapers/dev' || page === '/data/scrapers/prod' ){
-                addScraper(data)
+                addScraper(data);
             }else if( page === '/manage/organizations' ){
-                addOrganizations(data)
+                addOrganizations(data);
             }else{
                 addToTable(data, socketListen);
             }
