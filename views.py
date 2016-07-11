@@ -1,5 +1,5 @@
 import logging
-from flask import render_template, request, jsonify, abort, redirect, url_for
+from flask import render_template, request, jsonify, abort, redirect, url_for, flash
 from flask.ext.security import current_user, login_required
 from flask_socketio import emit, join_room
 from app import app, socketio
@@ -51,14 +51,14 @@ def connect_manage_apikeys():
 @login_required
 def manage_apikeys():
     if request.method == 'POST':
-        rdata = {'success': False,
+        rdata = {'status': 'success',
                  'message': '',
                  }
         name = request.form['name'].strip()
         organization_id = request.form['organization'].strip()
         if not name:
             rdata['message'] = "Name is required"
-            rdata['success'] = False
+            rdata['status'] = 'error'
         else:
             apikey = ApiKey(name)
             apikey.organization = Organization.query.get(organization_id)
@@ -73,7 +73,7 @@ def manage_apikeys():
                           )
             rdata['message'] = "Api key {} was successfully created in {}".format(apikey.name,
                                                                                   apikey.organization.name)
-            rdata['success'] = True
+            rdata['success'] = 'success'
         return jsonify(rdata)
 
     return render_template('manage/apikeys.html')
@@ -127,7 +127,7 @@ def connect_manage_scrapers():
 @login_required
 def manage_scrapers():
     if request.method == 'POST':
-        rdata = {'success': False,
+        rdata = {'status': 'success',
                  'message': '',
                  }
         name = request.form['name'].strip()
@@ -135,7 +135,7 @@ def manage_scrapers():
         owner = request.form['owner'].strip()
         if not name:
             rdata['message'] = "Name is required"
-            rdata['success'] = False
+            rdata['status'] = 'success'
         else:
             scraper = Scraper(name, owner)
             scraper.user = current_user
@@ -160,7 +160,7 @@ def manage_scrapers():
                           )
             rdata['message'] = "Scraper {} was successfully created in group {}"\
                                .format(scraper.name, scraper.group.name)
-            rdata['success'] = True
+            rdata['status'] = 'success'
         return jsonify(rdata)
 
     group_list = []
@@ -217,20 +217,20 @@ def connect_manage_groups():
 @login_required
 def manage_groups():
     if request.method == 'POST':
-        rdata = {'success': False,
+        rdata = {'status': 'success',
                  'message': '',
                  }
         name = request.form['name'].strip()
         organization_id = request.form['organization'].strip()
         if not name:
             rdata['message'] = "Name is required"
-            rdata['success'] = False
+            rdata['status'] = 'error'
         else:
             # Check if group name for organization already exists
             is_group = Group.query.filter_by(organization_id=organization_id).filter_by(name=name).scalar()
             if is_group is not None:
                 rdata['message'] = "Group with name {} already exists".format(name)
-                rdata['success'] = False
+                rdata['status'] = 'error'
             else:
                 # TODO: Make sure current_user has perms to create a group in this organization
                 group = Group(name=name, organization_id=organization_id)
@@ -248,7 +248,7 @@ def manage_groups():
                               )
                 rdata['message'] = "Group {} was successfully created in {}".format(group.name,
                                                                                     group.organization.name)
-                rdata['success'] = True
+                rdata['status'] = 'success'
         return jsonify(rdata)
 
     return render_template('manage/groups.html')
@@ -257,7 +257,7 @@ def manage_groups():
 @app.route('/manage/groups/delete/<int:group_id>', methods=['GET'])
 @login_required
 def manage_group_delete(group_id):
-    rdata = {'success': False,
+    rdata = {'status': 'error',
              'message': '',
              }
     group = Group.query.get(group_id)
@@ -280,7 +280,7 @@ def manage_group_delete(group_id):
                       )
 
         rdata['message'] = "Deleted Group {} from {}".format(group.name, group.organization.name)
-        rdata['success'] = True
+        rdata['status'] = 'success'
 
     return jsonify(rdata)
 
@@ -306,19 +306,19 @@ def connect_manage_organizations():
 @login_required
 def manage_organizations():
     if request.method == 'POST':
-        rdata = {'success': False,
+        rdata = {'status': False,
                  'message': '',
                  }
         name = request.form['name'].strip()
         if not name:
             rdata['message'] = "Name is required"
-            rdata['success'] = False
+            rdata['status'] = 'error'
         else:
             # Check if organization name already exists
             is_organization = Organization.query.filter_by(name=name).scalar()
             if is_organization is not None:
                 rdata['message'] = "Organization with name {} already exists".format(name)
-                rdata['success'] = False
+                rdata['status'] = 'error'
             else:
                 organization = Organization(name=name, user=current_user)
                 db.session.add(organization)
@@ -339,7 +339,7 @@ def manage_organizations():
                               room='organization-' + str(organization.id)
                               )
                 rdata['message'] = "Organization {} was successfully created".format(organization.name)
-                rdata['success'] = True
+                rdata['status'] = 'success'
         return jsonify(rdata)
 
     return render_template('manage/organizations.html')
@@ -348,27 +348,27 @@ def manage_organizations():
 @app.route('/manage/organizations/adduser', methods=['POST'])
 @login_required
 def manage_organizations_add_user():
-    rdata = {'success': False,
+    rdata = {'status': False,
              'message': '',
              }
     name = request.form['name'].strip()
     organization_id = request.form['organization'].strip()
     if not name:
         rdata['message'] = "Name is required"
-        rdata['success'] = False
+        rdata['status'] = False
         return jsonify(rdata)
 
     # Check if organization exists
     organization = Organization.query.get(organization_id)
     if organization is None:
         rdata['message'] = "Organization {} - {} does not exists".format(organization_id, name)
-        rdata['success'] = False
+        rdata['status'] = 'error'
         return jsonify(rdata)
 
     # Check if it is the users private organization
     if organization.name == current_user.username:
         rdata['message'] = "Cannot add users to your private organization"
-        rdata['success'] = False
+        rdata['status'] = 'error'
         return jsonify(rdata)
 
     # Does user have permission to be adding users
@@ -380,12 +380,12 @@ def manage_organizations_add_user():
     if new_user in organization.users:
         rdata['message'] = "User {} is already part of organization {}".format(new_user.username,
                                                                                organization.name)
-        rdata['success'] = True
+        rdata['status'] = 'success'
         return jsonify(rdata)
 
     if new_user is None:
         rdata['message'] = "User {} does not exists".format(name)
-        rdata['success'] = False
+        rdata['status'] = 'error'
         return jsonify(rdata)
 
     new_user.organizations.append(organization)
@@ -397,14 +397,14 @@ def manage_organizations_add_user():
 
     rdata['message'] = "User {} was successfully added to {}".format(new_user.username,
                                                                      organization.name)
-    rdata['success'] = True
+    rdata['status'] = 'success'
     return jsonify(rdata)
 
 
 @app.route('/manage/organizations/delete/<int:organization_id>', methods=['GET'])
 @login_required
 def manage_organizations_delete(organization_id):
-    rdata = {'success': False,
+    rdata = {'status': 'error',
              'message': '',
              }
     organization = Organization.query.get(organization_id)
@@ -427,7 +427,7 @@ def manage_organizations_delete(organization_id):
                       )
 
         rdata['message'] = "Deleted organization {}".format(organization.name)
-        rdata['success'] = True
+        rdata['status'] = 'success'
 
     return jsonify(rdata)
 

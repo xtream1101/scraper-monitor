@@ -58,6 +58,10 @@ var _template = {
         '</div>'
     ),
     deleteBtn: _.template('<button class="btn-del" data-id="{{rowId}}">Delete</button>'),
+    alert: _.template('<div class="alert alert-{{type}}" id="{{uid}}">' +
+                        '<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>' +
+                        '<strong>{{title}}</strong> {{message}}' +
+                     '</div>'),
 }
 
 var _utils = {
@@ -79,6 +83,7 @@ $(function(){
         var id = event.target.dataset.id;
         $.getJSON(url + '/delete/' + id, function( data ){
             console.log("Delete Action response: ", data);
+            displayAlert("", data.message, data.status);
         });
     });
 
@@ -128,6 +133,26 @@ function initPage(){
     }
 }
 
+function displayAlert(title, message, type){
+    var uid = ID();  // Create a unique id for the alert element
+    if (type == 'error'){
+        type = 'danger';
+    }
+
+    var alertData = {'title': title,
+                     'message': message,
+                     'type': type,
+                     'uid': uid
+                     };
+    // Display on page
+    $('#alert-container').append(_template.alert(alertData));
+    // Auto clear alert
+    $('#'+uid).fadeTo(4000, 500)
+              .slideUp(500, function(){
+                  $('#'+uid).alert('close');
+              });
+}
+
 function submitForm( event ){
     event.preventDefault();
     var $form = $(event.currentTarget);
@@ -139,6 +164,7 @@ function submitForm( event ){
         success: function( data ){
             $form.trigger("reset");
             console.log("Action response: ", data);
+            displayAlert("", data.message, data.status);
         }
     });
 }
@@ -276,4 +302,11 @@ function addToTable( response, tableName ){
             }
         }
     });
+}
+
+var ID = function(){
+  // Math.random should be unique because of its seeding algorithm.
+  // Convert it to base 36 (numbers + letters), and grab the first 9 characters
+  // after the decimal.
+  return '_' + Math.random().toString(36).substr(2, 9);
 }
