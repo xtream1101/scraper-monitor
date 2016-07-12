@@ -15,6 +15,40 @@ The logs api endpoint is meant to work directly with the python logging `HTTPHan
 - TODO
 
 
-## API Usage
+## API Endpoints
+_POST data is json_
 
-- TODO
+*Required by all requests:*  
+- `GET`
+  - *All required*
+  - `apikey` - Api key of the organization the scraper is under
+  - `scraperKey` - Unique id for the scraper
+  - `scraperRun` - Unique uuid for this run of the scraper
+  - `environment` - Either `DEV` or `PROD`
+
+- Endpoint: `/api/v1/logs`
+  - `POST`
+    - This is the endpoint the python logging HTTPHandler should be set to
+    - Do not log directly to this, use pythons built in logging.
+
+- Endpoint: `/api/v1/data/start`
+  - `POST`
+    - `startTime` - *Required* - python datetime (should be UTC)
+
+- Endpoint: `/api/v1/data/stop`
+  - `POST`
+    - `stopTime` - *Required* - python datetime (should be UTC)
+    - `totalUrls` - *Optional* - Number of urls that were loaded
+    - `refDataCount` - *Optional* - Total number of things that should be scraped
+    - `refDataSuccessCount` - *Optional* - Total number of things that did scrape successfully
+    - `rowsAddedToDb` - *Optional* - Number of rows add to the database
+
+- Endpoint: `/api/v1/error/url`
+  - `POST`
+    - `url` - *Required* - The url in question
+    - `numTries` - *Optional* - How many times has this url been tried
+    - `reason` - *Optional* - Why is the url marked as failed
+    - `ref_id` - *Optional* - The ref id of the url
+    - `ref_table` - *Optional* - Where does this ref id live
+    - `statusCode` - *Optional* - HTTP status code, only needed if this was the cause
+    - `threadName` - *Optional* - The name of the python thread.
