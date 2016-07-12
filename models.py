@@ -64,10 +64,10 @@ class User(db.Model, UserMixin):
     confirmed_at = db.Column(db.DateTime)
     roles = db.relationship('Role', secondary=roles_users,
                             backref=db.backref('users', lazy='dynamic'))
-    organizations_owner = db.relationship('Organization', backref='user',
-                                          lazy='dynamic')
+    organizations_owner = db.relationship('Organization', backref='user', lazy='dynamic')
     organizations = db.relationship('Organization', secondary=organizations_users,
-                                    backref=db.backref('users', lazy='dynamic'))
+                                    backref='users', lazy='dynamic')
+    scrapers = db.relationship('Scraper', backref='owner', lazy='dynamic')
 
     def __str__(self):
         return self.username
@@ -147,24 +147,29 @@ class Scraper(db.Model):
     __table_args__ = {'schema': SCHEMA}
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64))
-    owner = db.Column(db.String(64))
     key = db.Column(db.String(32), unique=True)
     time_added = db.Column(db.DateTime, default=datetime.datetime.now)
+    owner_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.user.id'))
     group_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.group.id'))
     scraper_runs = db.relationship('ScraperRun', backref='scraper',
                                    cascade='all, delete-orphan', lazy='dynamic')
 
-    def __init__(self, name, owner):
+    def __init__(self, name):
         self.name = name
-        self.owner = owner
 
     @property
     def serialize(self):
         """Return object data in easily serializeable format"""
+
+        try:
+            owner = User.query.get(self.owner_id).username
+        except Exception:
+            owner = None
+
         return {'id': self.id,
                 'rowId': self.id,
                 'name': self.name,
-                'owner': self.owner,
+                'owner': owner,
                 'key': self.key,
                 'group': self.group.name,
                 'organization': self.group.organization.name,

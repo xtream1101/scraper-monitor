@@ -4,6 +4,7 @@ from flask.ext.security import current_user, login_required
 from flask_socketio import emit, join_room
 from app import app, socketio
 from models import *
+from pprint import pprint
 
 logger = logging.getLogger(__name__)
 
@@ -128,24 +129,42 @@ def connect_manage_scrapers():
 def manage_scrapers():
     if request.method == 'POST':
         rdata = {'status': 'success',
-                 'message': '',
+                 'message': "",
                  }
         name = request.form['name'].strip()
-        group_id = request.form['group'].strip()
-        owner = request.form['owner'].strip()
+        try:
+            group = Group.query.get(int(request.form['group'].strip()))
+        except ValueError:
+            group = None
+
+        try:
+            owner = User.query.get(int(request.form['owner'].strip()))
+        except ValueError:
+            owner = None
+
         if not name:
             rdata['message'] = "Name is required"
-            rdata['status'] = 'success'
-        else:
-            scraper = Scraper(name, owner)
-            scraper.user = current_user
+            rdata['status'] = 'error'
 
-            if group_id != "":
-                scraper.group = Group.query.get(group_id)
+        if group is None:
+            rdata['message'] = "Group is required"
+            rdata['status'] = 'error'
+
+        elif owner is not None and owner not in group.organization.users:
+            # If the user is not in the org that the scraper is in
+            rdata['message'] = "Invalid owner for the scraper"
+            rdata['status'] = 'error'
+
+        else:
+            scraper = Scraper(name)
+            scraper.owner = owner
+            scraper.group = group
 
             db.session.add(scraper)
             # Flush to get the id so it can be encoded
             db.session.flush()
+            # Do not change the string in the function below.
+            # It is just used to create the scraper key, nothing secure
             scraper.key = generate_key(scraper.id, 'Scraper Salt 123')
 
             db.session.add(scraper)
@@ -169,7 +188,7 @@ def manage_scrapers():
         groups = [i.serialize for i in groups]
         group_list.extend(groups)
     return render_template('manage/scrapers.html',
-                           groups=group_list
+                           groups=group_list,
                            )
 
 
@@ -191,7 +210,27 @@ def manage_scraper_delete(scraper_id):
                   namespace='/manage/scrapers',
                   room='organization-' + str(scraper.group.organization.id)
                   )
-    return jsonify({'message': "Deleted Scraper " + scraper.name})
+    return jsonify({'message': "Deleted Scraper " + scraper.name, 'status': 'success'})
+
+
+@app.route('/manage/api/userlist/<int:organization_group_id>', methods=['GET'])
+@login_required
+def manage_user_list(organization_group_id):
+    user_list = []
+    users = Group.query.get(organization_group_id).organization.users
+
+    if current_user not in users:
+        abort(403)
+
+    for user in users:
+        user_list.append({'id': user.id,
+                          'username': user.username,
+                          'selected': current_user == user
+                          })
+
+    pprint(user_list)
+    rdata = {'user_list': user_list}
+    return jsonify(rdata)
 
 
 ###

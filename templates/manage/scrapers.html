@@ -5,16 +5,23 @@
     <form action="" method="post" id="add-scraper" class="form-horizontal">
         <h4>Add a new Scraper</h4>
 
-        <input type="text" id="name" name="name" class="input-large"
+        <input type="text" id="scraper-name" name="name" class="input-large"
         placeholder="Name the Scraper" value="{{ request.form.name }}"
         required>
-        <input type="text" id="owner" name="owner" class="input-large"
-        placeholder="Scraper Owner" value="{{ request.form.owner }}">
 
-        <select id="group" class="select-group" name="group">
+        <select id="scraper-group" class="select-group" name="group">
             {%- for group in groups %}
             <option value="{{ group.id }}">{{ group.organization }}.{{ group.name }}</option>
             {%- endfor %}        
+        </select>
+
+        <!-- <input type="text" id="owner" name="owner" class="input-large"
+        placeholder="Scraper Owner" value="{{ request.form.owner }}"> -->
+
+        <select id="scraper-owner" class="select-owner" name="owner">
+            <option value="null">None</option>
+            <option value="{{ current_user.id }}" selected="selected">{{ current_user.username }}</option>
+
         </select>
 
         <button type="submit" class="btn btn-success">Add Scraper</button>

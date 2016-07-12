@@ -3,7 +3,8 @@
 _.templateSettings = {interpolate: /\{\{(.+?)\}\}/g};
 
 var page = window.location.pathname;
-var url = window.location.origin + page;
+var baseUrl = window.location.origin;
+var url = baseUrl + page;
 
 
 var _template = {
@@ -87,6 +88,12 @@ $(function(){
         });
     });
 
+    // When adding a new scraper, this will dynamically populate what users can be owners
+    $('body').on( 'change', '#scraper-group', function( event ){
+        var id = $('#scraper-group').val();
+        populateUserDropdown(id);
+    });
+
     $('.sub-menu-item').on( 'click', function( event ){
         localStorage.setItem('sm-activeMenu', '#' + event.currentTarget.id);
     });    
@@ -133,7 +140,7 @@ function initPage(){
     }
 }
 
-function displayAlert(title, message, type){
+function displayAlert( title, message, type ){
     var uid = ID();  // Create a unique id for the alert element
     if (type == 'error'){
         type = 'danger';
@@ -151,6 +158,31 @@ function displayAlert(title, message, type){
               .slideUp(500, function(){
                   $('#'+uid).alert('close');
               });
+}
+
+function populateUserDropdown( organizationGroupId ){
+    var $options = $('#scraper-owner');
+
+    $options.empty(); // Remove current options
+    // Always have None as an option
+    $options.append($('<option value="">None</option>'));
+
+    // Get the other users that can be assigned as owner
+    $.getJSON(baseUrl + '/manage/api/userlist/' + organizationGroupId, function( data ){
+
+        $.each( data.user_list, function( i, user ){
+            var is_selected = '';
+            if( user.selected === true ){
+                is_selected = 'selected="selected"';
+            }
+            $options.append($('<option value="' + user.id + '" ' + is_selected + '>' +
+                                user.username + '</option>'));
+        });
+
+        $options.css('box-shadow', '0px 0px 20px 0px blue');
+        setTimeout(function(){ $options.css('box-shadow', ''); }, 1500);
+        $options.trigger("chosen:updated");
+    });
 }
 
 function submitForm( event ){
