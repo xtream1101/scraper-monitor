@@ -1,10 +1,9 @@
 import logging
-from flask import render_template, request, jsonify, abort, redirect, url_for, flash
+from flask import render_template, request, jsonify, abort, redirect, url_for
 from flask.ext.security import current_user, login_required
 from flask_socketio import emit, join_room
 from app import app, socketio
 from models import *
-from pprint import pprint
 
 logger = logging.getLogger(__name__)
 
@@ -228,7 +227,6 @@ def manage_user_list(organization_group_id):
                           'selected': current_user == user
                           })
 
-    pprint(user_list)
     rdata = {'user_list': user_list}
     return jsonify(rdata)
 
