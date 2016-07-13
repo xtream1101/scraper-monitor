@@ -107,9 +107,8 @@ class ApiKey(db.Model):
     time_added = db.Column(db.DateTime, default=datetime.datetime.now)
     organization_id = db.Column(db.Integer, db.ForeignKey(SCHEMA + '.organization.id'))
 
-    def __init__(self, name, host):
+    def __init__(self, name):
         self.name = name
-        self.host = host
 
     @property
     def serialize(self):

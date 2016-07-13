@@ -98,8 +98,9 @@ def manage_apikey_delete(apikey_id):
                   namespace='/manage/apikeys',
                   room='organization-' + str(apikey.organization.id)
                   )
-    return jsonify({'message': "Deleted API key {} from {}".format(apikey.name,
-                                                                   apikey.organization.name)
+    return jsonify({'message': "Deleted API key {} from {}"
+                               .format(apikey.name, apikey.organization.name),
+                    'status': 'success',
                     })
 
 

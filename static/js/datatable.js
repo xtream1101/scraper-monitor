@@ -9,7 +9,6 @@ $(function(){
             { data: 'organization' },
             { data: 'name' },
             { data: 'key' },
-            { data: 'host' },
             { data: 'timeAdded' },
             { data: 'action' },
         ],
@@ -25,7 +24,10 @@ $(function(){
         ],
         columns: [
             { data: 'rowId' },
-            { data: 'group' },
+            { data: 'group',
+              render:function( data, type, full, meta ){
+                return full.organization + '.' + full.group;
+              }},
             { data: 'name' },
             { data: 'owner' },
             { data: 'key' },

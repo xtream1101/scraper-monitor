@@ -154,7 +154,7 @@ function displayAlert( title, message, type ){
     // Display on page
     $('#alert-container').append(_template.alert(alertData));
     // Auto clear alert
-    $('#'+uid).fadeTo(4000, 500)
+    $('#'+uid).fadeTo(3000, 500)
               .slideUp(500, function(){
                   $('#'+uid).alert('close');
               });
