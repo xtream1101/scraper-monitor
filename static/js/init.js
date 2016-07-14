@@ -58,6 +58,34 @@ var _template = {
             '<button class="btn-del" data-id="{{rowId}}">Delete</button>' +
         '</div>'
     ),
+    // Manage tables
+    manageScrapersRow: _.template(
+        '<tr id="{{rowId}}">' +
+            '<td class="scraper-group">{{organization}}.{{group}}</td>' +
+            '<td class="scraper-name">{{name}}</td>' +
+            '<td class="scraper-owner">{{owner}}</td>' +
+            '<td class="scraper-key">{{key}}</td>' +
+            '<td class="scraper-date">{{timeAdded}}</td>' +
+            '<td class="scraper-actions">{{actions}}</td>' +
+        '</tr>'
+    ),
+    manageGroupsRow: _.template(
+        '<tr id="{{rowId}}">' +
+            '<td class="scraper-organization">{{organization}}</td>' +
+            '<td class="scraper-name">{{name}}</td>' +
+            '<td class="scraper-actions">{{actions}}</td>' +
+        '</tr>'
+    ),
+    manageApikeysRow: _.template(
+        '<tr id="{{rowId}}">' +
+            '<td class="scraper-organization">{{organization}}</td>' +
+            '<td class="scraper-name">{{name}}</td>' +
+            '<td class="scraper-key">{{key}}</td>' +
+            '<td class="scraper-date">{{timeAdded}}</td>' +
+            '<td class="scraper-actions">{{actions}}</td>' +
+        '</tr>'
+    ),
+
     deleteBtn: _.template('<button class="btn-del" data-id="{{rowId}}">Delete</button>'),
     alert: _.template('<div class="alert alert-{{type}}" id="{{uid}}">' +
                         '<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>' +
@@ -67,9 +95,8 @@ var _template = {
 
 var _utils = {
     formatTime: function( time ){
-        if( time === null ){
-            return '';
-        }
+        if( time === null ) return '';
+
         return moment(time).format("YYYY-MM-DD HH:mm:ss")
     },
 };
@@ -96,7 +123,34 @@ $(function(){
 
     $('.sub-menu-item').on( 'click', function( event ){
         localStorage.setItem('sm-activeMenu', '#' + event.currentTarget.id);
-    });    
+    });
+
+    var $table = $('table').tablesorter({
+        widgets: ["filter"],
+        widgetOptions : {
+            // filter_anyMatch replaced! Instead use the filter_external option
+            // Set to use a jQuery selector (or jQuery object) pointing to the
+            // external filter (column specific or any match)
+            filter_external : '.search',
+            // add a default type search to the first name column
+            filter_defaultFilter: { 1 : '~{query}' },
+            filter_columnFilters: false,
+            filter_placeholder: { search : 'Search...' },
+            filter_saveFilters : true,
+            filter_reset: '.reset'
+        }
+    });
+    $('body').on('click', 'button[data-column]', function(){
+        var $this = $(this),
+            totalColumns = $table[0].config.columns,
+            col = $this.data('column'), // zero-based index or "all"
+            filter = [];
+
+        // text to add to filter
+        filter[ col === 'all' ? totalColumns : col ] = $this.text();
+        $table.trigger('search', [ filter ]);
+        return false;
+    });  
 });
 
 function initPage(){
@@ -128,7 +182,6 @@ function initPage(){
     if( socketListen !== null ){
         socket.on(socketListen, function( data ){
             console.log("WebSocket: ", data);
-            console.log( new ScraperRunTable() );
             if( page === '/data/scrapers/dev' || page === '/data/scrapers/prod' ){
                 addScraper(data);
             }else if( page === '/manage/organizations' ){
@@ -311,29 +364,41 @@ function addOrganizations( response ){
 }
 
 function addToTable( response, tableName ){
-    var table = $('#tbl-' + tableName).DataTable();
+    var $table = $('#tbl-' + tableName);
     var action = response.action;
     var rows = response.data;
 
     $.each( rows, function( i, rowData ){
-        var dtRowId = table.row('[id=jdt-' + rowData.rowId + ']').index();
+        // var dtRowId = table.row('[id=jdt-' + rowData.rowId + ']').index();
+        var $row = $('#' + rowData.rowId);
 
         if( action === 'update' || action === 'add' || action === 'increment'){
-            rowData.action = _template.deleteBtn(rowData);
             rowData.timeAdded = _utils.formatTime(rowData.timeAdded)
+            rowData.actions = _template.deleteBtn(rowData);
 
-            if( dtRowId >= 0 ){
-                table.row(dtRowId).data(rowData).draw();
+            if( $row.length ){
+                // Update the row
+                console.log("Update scraper: " + rowData.key);
             }else{
-                table.row.add(rowData).draw();
+                // Add the row to the table
+                var newRow = null;
+                if( page === '/manage/apikeys' ){
+                    newRow = _template.manageApikeysRow(rowData);
+                }else if( page === '/manage/scrapers' ){
+                    newRow = _template.manageScrapersRow(rowData);
+                }else if( page === '/manage/groups' ){
+                    newRow = _template.manageGroupsRow(rowData);
+                }else if( page === '/manage/organizations' ){
+                    newRow = _template.manageOrganizationsRow(rowData);
+                }           
+                $table.append(newRow);
             }
 
         }else if( action === 'delete' ){
-            if( dtRowId >= 0 ){
-                table.row(dtRowId).remove().draw();
-            }
+            $row.remove();
         }
     });
+    $table.trigger("update");
 }
 
 var ID = function(){

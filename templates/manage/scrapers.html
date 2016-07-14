@@ -15,9 +15,6 @@
             {%- endfor %}        
         </select>
 
-        <!-- <input type="text" id="owner" name="owner" class="input-large"
-        placeholder="Scraper Owner" value="{{ request.form.owner }}"> -->
-
         <select id="scraper-owner" class="select-owner" name="owner">
             <option value="null">None</option>
             <option value="{{ current_user.id }}" selected="selected">{{ current_user.username }}</option>
@@ -27,18 +24,21 @@
         <button type="submit" class="btn btn-success">Add Scraper</button>
     </form>
 
+
     <h2>All Scrapers</h2>
-    <table id="tbl-manage-scrapers" class="display table-hover table-striped">
+
+    <input class="search" type="search" data-column="all">
+    <button type="button" class="reset">Reset Search</button>
+    <table id="tbl-manage-scrapers" class="tablesorter-bootstrap tablesorter table table-bordered table-hover table-striped" role="grid">
         <thead>
             <tr>
-                <th>rowId</th>
                 <th>Group</th>
                 <th>Name</th>
                 <th>Owner</th>
                 <th>Key</th>
                 <th>Date</th>
                 <th>Actions</th>
-            </th>
+            </tr>
         </thead>
         <tbody>
         </tbody>

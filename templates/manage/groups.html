@@ -10,7 +10,6 @@
         required>
 
         <select id="organization" class="select-organization" name="organization">
-            <!-- TODO: Default to current user -->
             {%- for organization in current_user.organizations %}
             <option value="{{ organization.id }}">{{ organization.name }}</option>
             {%- endfor %}        
@@ -19,11 +18,14 @@
         <button type="submit" class="btn btn-success">Add Group</button>
     </form>
 
+
     <h2>All Groups</h2>
-    <table id="tbl-manage-groups" class="display table-hover table-striped">
+
+    <input class="search" type="search" data-column="all">
+    <button type="button" class="reset">Reset Search</button>
+    <table id="tbl-manage-groups" class="tablesorter-bootstrap tablesorter table table-bordered table-hover table-striped" role="grid">
         <thead>
             <tr>
-                <th>rowId</th>
                 <th>Organization</th>
                 <th>Name</th>
                 <th>Actions</th>
