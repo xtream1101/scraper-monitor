@@ -1,4 +1,5 @@
 import logging
+from pprint import pprint
 from flask import render_template, request, jsonify, abort, redirect, url_for
 from flask.ext.security import current_user, login_required
 from flask_socketio import emit, join_room
@@ -69,7 +70,7 @@ def manage_apikeys():
             socketio.emit('manage-apikeys',
                           {'data': data, 'action': 'add'},
                           namespace='/manage/apikeys',
-                          room='organization-' + str(apikey.organization.id)
+                          room='organization-' + str(apikey.organization_id)
                           )
             rdata['message'] = "Api key {} was successfully created in {}".format(apikey.name,
                                                                                   apikey.organization.name)
@@ -77,6 +78,59 @@ def manage_apikeys():
         return jsonify(rdata)
 
     return render_template('manage/apikeys.html')
+
+
+@app.route('/manage/apikeys/edit', methods=['POST'])
+@login_required
+def manage_apikey_edit():
+    rdata = {'success': False,
+             'message': "",
+             }
+    apikey_id = request.form['pk']
+    apikey_field = request.form['name'].strip()
+    apikey_new_name = request.form['value'].strip()
+
+    # Check if the user has permission to update this value
+    apikey = None
+    try:
+        apikey = ApiKey.query.get(int(apikey_id))
+        if current_user not in apikey.organization.users or apikey is None:
+            rdata['success'] = False
+            rdata['message'] = "Invalid apikey"
+            return jsonify(rdata)
+
+    except Exception:
+        logger.exception("Error checking if user ({}) can access the apikey ({})"
+                         .format(current_user.id, apikey_id))
+        rdata['success'] = False
+        rdata['message'] = "Invalid apikey"
+        return jsonify(rdata)
+
+    # Check if the new apikey name can be used
+    current_apikey_names = apikey.organization.apikeys
+    apikey_list = []
+    # Create list of current apikey name to check if the name already exists
+    for key in current_apikey_names:
+        apikey_list.append(key.name.strip().lower())
+
+    if apikey_new_name.lower() in apikey_list and apikey_new_name.lower() != apikey.name.lower():
+        rdata['success'] = False
+        rdata['message'] = "Apikey with name `{}` is already in use".format(apikey_new_name)
+        return jsonify(rdata)
+
+    # All error checking has been done, lets save the data
+    apikey.name = apikey_new_name
+    db.session.add(apikey)
+    db.session.commit()
+    data = [apikey.serialize]
+    socketio.emit('manage-apikeys',
+                  {'data': data, 'action': 'update'},
+                  namespace='/manage/apikeys',
+                  room='organization-' + str(apikey.organization.id)
+                  )
+    rdata['success'] = True
+
+    return jsonify(rdata)
 
 
 @app.route('/manage/apikeys/delete/<int:apikey_id>', methods=['GET'])
@@ -290,6 +344,69 @@ def manage_groups():
         return jsonify(rdata)
 
     return render_template('manage/groups.html')
+
+
+@app.route('/manage/groups/edit', methods=['POST'])
+@login_required
+def manage_group_edit():
+    rdata = {'success': False,
+             'message': "",
+             }
+    group_id = request.form['pk']
+    group_field = request.form['name'].strip()
+    group_new_name = request.form['value'].strip()
+
+    # Check if the user has permission to update this value
+    group = None
+    try:
+        group = Group.query.get(int(group_id))
+        if current_user not in group.organization.users or group is None:
+            rdata['success'] = False
+            rdata['message'] = "Invalid group"
+            return jsonify(rdata)
+
+    except:
+        logger.exception("Error checking if user ({}) can access the group ({})"
+                         .format(current_user.id, group_id))
+        rdata['success'] = False
+        rdata['message'] = "Invalid group"
+        return jsonify(rdata)
+
+    # Check if the new group name can be used
+    current_groups = group.organization.groups
+    group_list = []
+    # Create list of current groups to check if the name already exists
+    for group_name in current_groups:
+        group_list.append(group_name.name.strip().lower())
+
+    if group.name.lower() == 'default':
+        # Can not rename the default group
+        rdata['success'] = False
+        rdata['message'] = "Cannot modify the Default group"
+        return jsonify(rdata)
+
+    elif (group_new_name.lower() == 'default' or group_new_name.lower() in group_list)\
+         and group_new_name.lower() != group.name.lower():
+        # There is always a default group, so this name cannot be used
+        rdata['success'] = False
+        rdata['message'] = "Group with name `{}` is already in use".format(group_new_name)
+        return jsonify(rdata)
+
+    # All error checking has been done, lets save the data
+    group.name = group_new_name
+    db.session.add(group)
+    db.session.commit()
+    logger.info("User {} updated group {} in {}"
+                .format(current_user.email, group.name, group.organization.name))
+    data = [group.serialize]
+    socketio.emit('manage-groups',
+                  {'data': data, 'action': 'update'},
+                  namespace='/manage/groups',
+                  room='organization-' + str(group.organization_id)
+                  )
+    rdata['success'] = True
+
+    return jsonify(rdata)
 
 
 @app.route('/manage/groups/delete/<int:group_id>', methods=['GET'])

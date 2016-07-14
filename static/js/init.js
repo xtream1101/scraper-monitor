@@ -70,19 +70,19 @@ var _template = {
         '</tr>'
     ),
     manageGroupsRow: _.template(
-        '<tr id="{{rowId}}">' +
-            '<td class="scraper-organization">{{organization}}</td>' +
-            '<td class="scraper-name">{{name}}</td>' +
-            '<td class="scraper-actions">{{actions}}</td>' +
+        '<tr id="{{rowId}}" class="manageGroupsRow">' +
+            '<td class="group-organization">{{organization}}</td>' +
+            '<td class="group-name">{{name}}</td>' +
+            '<td class="group-actions">{{actions}}</td>' +
         '</tr>'
     ),
     manageApikeysRow: _.template(
         '<tr id="{{rowId}}">' +
-            '<td class="scraper-organization">{{organization}}</td>' +
-            '<td class="scraper-name">{{name}}</td>' +
-            '<td class="scraper-key">{{key}}</td>' +
-            '<td class="scraper-date">{{timeAdded}}</td>' +
-            '<td class="scraper-actions">{{actions}}</td>' +
+            '<td class="apikey-organization">{{organization}}</td>' +
+            '<td class="apikey-name">{{name}}</td>' +
+            '<td class="apikey-key">{{key}}</td>' +
+            '<td class="apikey-date">{{timeAdded}}</td>' +
+            '<td class="apikey-actions">{{actions}}</td>' +
         '</tr>'
     ),
 
@@ -97,7 +97,7 @@ var _utils = {
     formatTime: function( time ){
         if( time === null ) return '';
 
-        return moment(time).format("YYYY-MM-DD HH:mm:ss")
+        return moment(time).format("YYYY-MM-DD HH:mm")
     },
 };
 
@@ -125,32 +125,6 @@ $(function(){
         localStorage.setItem('sm-activeMenu', '#' + event.currentTarget.id);
     });
 
-    var $table = $('table').tablesorter({
-        widgets: ["filter"],
-        widgetOptions : {
-            // filter_anyMatch replaced! Instead use the filter_external option
-            // Set to use a jQuery selector (or jQuery object) pointing to the
-            // external filter (column specific or any match)
-            filter_external : '.search',
-            // add a default type search to the first name column
-            filter_defaultFilter: { 1 : '~{query}' },
-            filter_columnFilters: false,
-            filter_placeholder: { search : 'Search...' },
-            filter_saveFilters : true,
-            filter_reset: '.reset'
-        }
-    });
-    $('body').on('click', 'button[data-column]', function(){
-        var $this = $(this),
-            totalColumns = $table[0].config.columns,
-            col = $this.data('column'), // zero-based index or "all"
-            filter = [];
-
-        // text to add to filter
-        filter[ col === 'all' ? totalColumns : col ] = $this.text();
-        $table.trigger('search', [ filter ]);
-        return false;
-    });  
 });
 
 function initPage(){
@@ -369,7 +343,6 @@ function addToTable( response, tableName ){
     var rows = response.data;
 
     $.each( rows, function( i, rowData ){
-        // var dtRowId = table.row('[id=jdt-' + rowData.rowId + ']').index();
         var $row = $('#' + rowData.rowId);
 
         if( action === 'update' || action === 'add' || action === 'increment'){
@@ -378,7 +351,7 @@ function addToTable( response, tableName ){
 
             if( $row.length ){
                 // Update the row
-                console.log("Update scraper: " + rowData.key);
+                console.log("Update scraper: " + rowData.rowId);
             }else{
                 // Add the row to the table
                 var newRow = null;
@@ -398,12 +371,13 @@ function addToTable( response, tableName ){
             $row.remove();
         }
     });
+    // $table.find('a').editable({url: '/manage/api/stuff'});
+    // $('#tbl-' + tableName + ' a').editable();
     $table.trigger("update");
 }
 
 var ID = function(){
   // Math.random should be unique because of its seeding algorithm.
-  // Convert it to base 36 (numbers + letters), and grab the first 9 characters
-  // after the decimal.
+  // Convert it to base 36 (numbers + letters), and grab the first 9 characters after the decimal.
   return '_' + Math.random().toString(36).substr(2, 9);
 }
