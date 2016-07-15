@@ -156,6 +156,9 @@ class Scraper(db.Model):
     def __init__(self, name):
         self.name = name
 
+    def __str__(self):
+        return '{}.{} - {}'.format(self.group.organization.name, self.group.name, self.name)
+
     @property
     def serialize(self):
         """Return object data in easily serializeable format"""
