@@ -197,7 +197,7 @@ function populateUserDropdown( organizationGroupId ){
     // Get the other users that can be assigned as owner
     $.getJSON(baseUrl + '/manage/api/userlist/' + organizationGroupId, function( data ){
 
-        $.each( data.user_list, function( i, user ){
+        $.each( data.userList, function( i, user ){
             var is_selected = '';
             if( user.selected === true ){
                 is_selected = 'selected="selected"';

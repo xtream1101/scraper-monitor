@@ -4,7 +4,6 @@ import logging
 from flask.ext.restful import Resource, abort
 from app import socketio, api
 from models import *
-from pprint import pprint
 
 logger = logging.getLogger(__name__)
 

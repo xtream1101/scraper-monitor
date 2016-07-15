@@ -1,5 +1,4 @@
 import logging
-from pprint import pprint
 from flask import render_template, request, jsonify, abort, redirect, url_for
 from flask.ext.security import current_user, login_required
 from flask_socketio import emit, join_room
@@ -19,7 +18,6 @@ def register():
 @login_required
 def index():
     return render_template('index.html')
-    # return render_template('scrapers.html')
 
 
 ###############################################################################
@@ -29,6 +27,78 @@ def index():
 ##
 ###############################################################################
 ###############################################################################
+@app.route('/manage/api/userlist/<int:organization_group_id>', methods=['GET'])
+@login_required
+def manage_user_list(organization_group_id):
+    user_list = []
+    users = Group.query.get(organization_group_id).organization.users
+
+    if current_user not in users:
+        abort(403)
+
+    for user in users:
+        user_list.append({'id': user.id,
+                          'username': user.username,
+                          'selected': current_user == user
+                          })
+
+    rdata = {'userList': user_list}
+    return jsonify(rdata)
+
+
+@app.route('/manage/api/edit_field/grouplist/', methods=['GET'])
+@login_required
+def manage_edit_field_group_list():
+    rdata = {'currentGroupId': None,
+             'groupList': [],
+             }
+
+    scraper_id = request.args.get('scraper_id')
+    if scraper_id is not None:
+        scraper = Scraper.query.get(scraper_id)
+        if current_user in scraper.group.organization.users:
+            # Make sure the user has access to this scraper
+            rdata['currentGroupId'] = scraper.group_id
+
+    group_list = []
+    organizations = User.query.get(current_user.id).organizations
+
+    for organization in organizations:
+        for group in organization.groups:
+            group_list.append({'id': group.id,
+                               'name': '{}.{}'.format(organization.name, group.name),
+                               })
+
+    rdata['groupList'] = group_list
+
+    return jsonify(rdata)
+
+
+@app.route('/manage/api/edit_field/userlist/', methods=['GET'])
+@login_required
+def manage_edit_field_user_list():
+    rdata = {'currentUserId': None,
+             'userList': [],
+             }
+
+    scraper_id = request.args.get('scraper_id')
+    if scraper_id is not None:
+        scraper = Scraper.query.get(scraper_id)
+        if current_user in scraper.group.organization.users:
+            # Make sure the user has access to this scraper
+            rdata['currentUserId'] = scraper.owner_id
+
+    user_list = []
+    for user in scraper.group.organization.users:
+        user_list.append({'id': user.id,
+                          'name': '{}'.format(user.username),
+                          })
+
+    rdata['userList'] = user_list
+
+    return jsonify(rdata)
+
+
 ###
 # Api Key Routes
 ###
@@ -103,7 +173,7 @@ def manage_apikey_edit():
         logger.exception("Error checking if user ({}) can access the apikey ({})"
                          .format(current_user.id, apikey_id))
         rdata['success'] = False
-        rdata['message'] = "Invalid apikey"
+        rdata['message'] = "Invalid action"
         return jsonify(rdata)
 
     # Check if the new apikey name can be used
@@ -246,6 +316,105 @@ def manage_scrapers():
                            )
 
 
+@app.route('/manage/scrapers/edit', methods=['POST'])
+@login_required
+def manage_scraper_edit():
+    rdata = {'success': False,
+             'message': "",
+             'displayAlert': None,
+             }
+    scraper_id = request.form['pk']
+    scraper_field = request.form['name'].strip()
+    scraper_new_value = request.form['value'].strip()
+
+    # Check if the user has permission to update this value
+    scraper = None
+    try:
+        scraper = Scraper.query.get(int(scraper_id))
+        scraper_users = scraper.group.organization.users
+        if current_user not in scraper_users or scraper is None:
+            rdata['success'] = False
+            rdata['message'] = "Invalid scraper"
+            return jsonify(rdata)
+
+    except Exception:
+        logger.exception("Error checking if user ({}) can access the scraper ({})"
+                         .format(current_user.id, scraper_id))
+        rdata['success'] = False
+        rdata['message'] = "Invalid action"
+        return jsonify(rdata)
+
+    # Checks depending on the field being updated
+    if scraper_field == 'name':
+        # Scrapers can have the same name
+        # All error checking has been done, lets save the data
+        scraper.name = scraper_new_value
+
+    elif scraper_field == 'group':
+        try:
+            new_group = Group.query.get(int(scraper_new_value))
+            # Make sure user has permissions for the group
+            if current_user not in new_group.organization.users:
+                rdata['success'] = False
+                rdata['message'] = "Invalid group"
+                return jsonify(rdata)
+
+            # Check if the current owner is part of this new group, if not set the owner to current user
+            if scraper.owner not in new_group.organization.users:
+                rdata['displayAlert'] = {'status': 'warning',
+                                         'message': "User <b>{}</b> is not in in the selected organization <b>{}</b>"
+                                                    "\nSetting scraper owner to <b>{}</b>"
+                                                    .format(scraper.owner.username,
+                                                            new_group.organization.name,
+                                                            current_user.username,
+                                                            ),
+                                         }
+                # Default owner to current user
+                scraper.owner = current_user
+
+            # Set the new group
+            scraper.group = new_group
+
+        except Exception:
+            logger.exception("Error checking if user ({}) can use the group ({})"
+                             .format(current_user.id, scraper_new_value))
+            rdata['success'] = False
+            rdata['message'] = "Invalid action"
+            return jsonify(rdata)
+
+    elif scraper_field == 'owner':
+        try:
+            new_user = User.query.get(int(scraper_new_value))
+            if new_user not in scraper_users or current_user not in scraper_users:
+                rdata['success'] = False
+                rdata['message'] = "Invalid user"
+                return jsonify(rdata)
+
+            # Everything looks good
+            scraper.owner = new_user
+
+        except Exception:
+            logger.exception("Error checking if user ({}) is in the organization ({})"
+                             .format(scraper_new_value, scraper.group.organization.name))
+            rdata['success'] = False
+            rdata['message'] = "Invalid action"
+            return jsonify(rdata)
+
+    db.session.add(scraper)
+    db.session.commit()
+    logger.info("User {} updated scraper {} - {}"
+                .format(current_user.email, scraper.key, scraper.name))
+    data = [scraper.serialize]
+    socketio.emit('manage-scrapers',
+                  {'data': data, 'action': 'update'},
+                  namespace='/manage/scrapers',
+                  room='organization-' + str(scraper.group.organization.id)
+                  )
+    rdata['success'] = True
+
+    return jsonify(rdata)
+
+
 @app.route('/manage/scrapers/delete/<int:scraper_id>', methods=['GET'])
 @login_required
 def manage_scraper_delete(scraper_id):
@@ -265,25 +434,6 @@ def manage_scraper_delete(scraper_id):
                   room='organization-' + str(scraper.group.organization.id)
                   )
     return jsonify({'message': "Deleted Scraper " + scraper.name, 'status': 'success'})
-
-
-@app.route('/manage/api/userlist/<int:organization_group_id>', methods=['GET'])
-@login_required
-def manage_user_list(organization_group_id):
-    user_list = []
-    users = Group.query.get(organization_group_id).organization.users
-
-    if current_user not in users:
-        abort(403)
-
-    for user in users:
-        user_list.append({'id': user.id,
-                          'username': user.username,
-                          'selected': current_user == user
-                          })
-
-    rdata = {'user_list': user_list}
-    return jsonify(rdata)
 
 
 ###
@@ -477,6 +627,7 @@ def manage_organizations():
             else:
                 organization = Organization(name=name, user=current_user)
                 db.session.add(organization)
+                db.session.flush()
                 current_user.organizations.append(organization)
                 group = Group(name='Default', organization_id=organization.id)
                 db.session.add(group)
