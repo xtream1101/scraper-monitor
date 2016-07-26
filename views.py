@@ -588,7 +588,7 @@ def manage_group_delete(group_id):
             db.session.add(default_group)
             moved_scrapers_message = "Moved {num_scrapers} scrapers to the Default group"\
                                      .format(num_scrapers=len(group_scrapers))
-        
+
         db.session.delete(group)
         db.session.commit()
 
@@ -738,22 +738,33 @@ def manage_organizations_delete(organization_id):
     if current_user.id != organization.owner_id:
         abort(403)
 
+    # Check if organization has scrapers still assigned to it
+    org_has_scrapers = False
+    for group in organization.groups:
+        if len(list(group.scrapers)) > 0:
+            org_has_scrapers = True
+            break
+    print(org_has_scrapers)
+
     if organization.name == current_user.username:
         rdata['message'] = "Cannot delete your private organization"
 
+    elif org_has_scrapers is True:
+        rdata['message'] = "Cannot delete. Organization has scrapers under it"
+        
     else:
         db.session.delete(organization)
         db.session.commit()
-        logger.info("User {} deleted organization {}"
-                    .format(current_user.username, organization.name))
+        logger.info("User {username} deleted organization {org_name}"
+                    .format(username=current_user.username, org_name=organization.name))
         data = [organization.serialize]
         socketio.emit('manage-organizations',
                       {'data': data, 'action': 'delete'},
                       namespace='/manage/organizations',
-                      room='organization-' + str(organization.id)
+                      room='organization-{org_id}'.format(org_id=organization.id)
                       )
 
-        rdata['message'] = "Deleted organization {}".format(organization.name)
+        rdata['message'] = "Deleted organization {org_name}".format(org_name=organization.name)
         rdata['status'] = 'success'
 
     return jsonify(rdata)
