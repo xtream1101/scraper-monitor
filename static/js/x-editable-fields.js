@@ -124,7 +124,7 @@ $(function(){
 
         // Get the list of user options
         $.getJSON(baseUrl + '/manage/api/edit_field/userlist/?scraper_id=' + scraper_id, function( data ){
-            var userList = [];
+            var userList = [''];
             $.each( data.userList, function( i, user ){
                 userList.push({value: user.id, text: user.name});
             });
@@ -132,7 +132,6 @@ $(function(){
             $target.editable({
                 type: 'select',
                 validate: function( value ){
-                    if($.trim(value) === '') return 'Cannot be empty';
                 },
                 name: 'owner',
                 value: data.currentUserId,

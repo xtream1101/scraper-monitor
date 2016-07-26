@@ -339,8 +339,8 @@ def manage_scraper_edit():
             return jsonify(rdata)
 
     except Exception:
-        logger.exception("Error checking if user ({}) can access the scraper ({})"
-                         .format(current_user.id, scraper_id))
+        logger.exception("Error checking if user ({user_id}) can access the scraper ({scraper_id})"
+                         .format(user_id=current_user.id, scraper_id=scraper_id))
         rdata['success'] = False
         rdata['message'] = "Invalid action"
         return jsonify(rdata)
@@ -363,11 +363,12 @@ def manage_scraper_edit():
             # Check if the current owner is part of this new group, if not set the owner to current user
             if scraper.owner not in new_group.organization.users:
                 rdata['displayAlert'] = {'status': 'warning',
-                                         'message': "User <b>{}</b> is not in in the selected organization <b>{}</b>"
-                                                    "\nSetting scraper owner to <b>{}</b>"
-                                                    .format(scraper.owner.username,
-                                                            new_group.organization.name,
-                                                            current_user.username,
+                                         'message': "User <b>{owner}</b> is not in in the selected "
+                                                    "organization <b>{org_name}</b>"
+                                                    "\nSetting scraper owner to <b>{current_user}</b>"
+                                                    .format(owner=scraper.owner.username,
+                                                            org_name=new_group.organization.name,
+                                                            current_user=current_user.username,
                                                             ),
                                          }
                 # Default owner to current user
@@ -377,41 +378,46 @@ def manage_scraper_edit():
             scraper.group = new_group
 
         except Exception:
-            logger.exception("Error checking if user ({}) can use the group ({})"
-                             .format(current_user.id, scraper_new_value))
+            logger.exception("Error checking if user ({user_id}) can use the group ({new_val})"
+                             .format(user_id=current_user.id, new_val=scraper_new_value))
             rdata['success'] = False
             rdata['message'] = "Invalid action"
             return jsonify(rdata)
 
     elif scraper_field == 'owner':
-        try:
-            new_user = User.query.get(int(scraper_new_value))
-            if new_user not in scraper_users or current_user not in scraper_users:
+        if scraper_new_value is None or scraper_new_value == '':
+            scraper.owner = None
+
+        else:
+            try:
+                new_user = User.query.get(int(scraper_new_value))
+                if new_user not in scraper_users or current_user not in scraper_users:
+                    rdata['success'] = False
+                    rdata['message'] = "Invalid user"
+                    return jsonify(rdata)
+
+                # Everything looks good
+                scraper.owner = new_user
+
+            except Exception:
+                logger.exception("Error checking if user ({new_val}) is in the organization ({org_name})"
+                                 .format(new_val=scraper_new_value, org_name=scraper.group.organization.name))
                 rdata['success'] = False
-                rdata['message'] = "Invalid user"
+                rdata['message'] = "Invalid action"
                 return jsonify(rdata)
-
-            # Everything looks good
-            scraper.owner = new_user
-
-        except Exception:
-            logger.exception("Error checking if user ({}) is in the organization ({})"
-                             .format(scraper_new_value, scraper.group.organization.name))
-            rdata['success'] = False
-            rdata['message'] = "Invalid action"
-            return jsonify(rdata)
 
     db.session.add(scraper)
     db.session.commit()
-    logger.info("User {} updated scraper {} - {}"
-                .format(current_user.email, scraper.key, scraper.name))
+    rdata['success'] = True
+
+    logger.info("User {email} updated scraper {scraper_key} - {scraper_name}"
+                .format(email=current_user.email, scraper_key=scraper.key, scraper_name=scraper.name))
     data = [scraper.serialize]
     socketio.emit('manage-scrapers',
                   {'data': data, 'action': 'update'},
                   namespace='/manage/scrapers',
-                  room='organization-' + str(scraper.group.organization.id)
+                  room='organization-{org_id}'.format(scraper.group.organization.id)
                   )
-    rdata['success'] = True
 
     return jsonify(rdata)
 
@@ -751,7 +757,7 @@ def manage_organizations_delete(organization_id):
 
     elif org_has_scrapers is True:
         rdata['message'] = "Cannot delete. Organization has scrapers under it"
-        
+
     else:
         db.session.delete(organization)
         db.session.commit()
