@@ -4,6 +4,7 @@ from flask.ext.security import current_user, login_required
 from flask_socketio import emit, join_room
 from app import app, socketio
 from models import *
+from pprint import pprint
 
 logger = logging.getLogger(__name__)
 
@@ -572,20 +573,39 @@ def manage_group_delete(group_id):
 
     if group.name.lower() == 'default':
         rdata['message'] = "Cannot delete default group"
+
     else:
+        # If the group has scrapers, move them to the default group
+        group_scrapers = list(group.scrapers)
+        moved_scrapers_message = ""
+        if len(group_scrapers) > 0:
+            default_group = Group.query.filter_by(organization_id=group.organization_id)\
+                                       .filter_by(name='Default').scalar()
+
+            for scraper in group_scrapers:
+                default_group.scrapers.append(scraper)
+
+            db.session.add(default_group)
+            moved_scrapers_message = "Moved {num_scrapers} scrapers to the Default group"\
+                                     .format(num_scrapers=len(group_scrapers))
+        
         db.session.delete(group)
         db.session.commit()
-        logger.info("User {} deleted group {} from {}"
-                    .format(current_user.email, group.name, group.organization.name))
+
+        rdata['message'] = "Deleted Group {group_name} from {org_name}. {moved_scrapers}"\
+                           .format(group_name=group.name,
+                                   org_name=group.organization.name,
+                                   moved_scrapers=moved_scrapers_message)
+        rdata['status'] = 'success'
+
+        logger.info("User {email} deleted group {group_name} from {org_name}"
+                    .format(email=current_user.email, group_name=group.name, org_name=group.organization.name))
         data = [group.serialize]
         socketio.emit('manage-groups',
                       {'data': data, 'action': 'delete'},
                       namespace='/manage/groups',
-                      room='organization-' + str(group.organization.id)
+                      room='organization-{org_id}'.format(org_id=group.organization_id)
                       )
-
-        rdata['message'] = "Deleted Group {} from {}".format(group.name, group.organization.name)
-        rdata['status'] = 'success'
 
     return jsonify(rdata)
 
@@ -720,6 +740,7 @@ def manage_organizations_delete(organization_id):
 
     if organization.name == current_user.username:
         rdata['message'] = "Cannot delete your private organization"
+
     else:
         db.session.delete(organization)
         db.session.commit()
