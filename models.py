@@ -1,4 +1,4 @@
-from flask.ext.security import current_user, RoleMixin, UserMixin
+from flask_security import current_user, RoleMixin, UserMixin
 from hashids import Hashids
 import uuid
 import datetime

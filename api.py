@@ -1,7 +1,7 @@
 from functools import wraps
 from flask import request
 import logging
-from flask.ext.restful import Resource, abort
+from flask_restful import Resource, abort
 from app import socketio, api
 from models import *
 

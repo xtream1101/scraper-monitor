@@ -46,7 +46,7 @@ def before_first_request():
     # Give one User has the "end-user" role, while the other has the "admin" role. (This will have no effect if the
     # Users already have these Roles.) Again, commit any database changes.
     # user_datastore.add_role_to_user('admin@example.com', 'admin')
-    db.session.commit()
+    # db.session.commit()
 
 if __name__ == '__main__':
     socketio.run(app, host=app.config.get('HOST'), port=app.config.get('PORT'), debug=app.config.get('DEBUG'))

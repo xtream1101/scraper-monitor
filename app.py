@@ -1,9 +1,9 @@
 import logging
 import eventlet
 from flask import Flask
-from flask.ext.cors import CORS
-from flask.ext.restful import Api
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_cors import CORS
+from flask_restful import Api
+from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail
 # from api import APIScraperLogging, APIScraperDataStart, APIScraperDataStop, APIScraperErrorUrl
 from flask_socketio import SocketIO

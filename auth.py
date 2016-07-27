@@ -1,5 +1,5 @@
-from flask.ext.security import Security, user_registered, SQLAlchemyUserDatastore
-from flask.ext.security.forms import ConfirmRegisterForm, StringField, Required, unique_user_email
+from flask_security import Security, user_registered, SQLAlchemyUserDatastore
+from flask_security.forms import ConfirmRegisterForm, StringField, Required, unique_user_email
 
 from app import app, db
 from models import User, Role, Organization, Group

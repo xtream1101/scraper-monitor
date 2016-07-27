@@ -1,6 +1,6 @@
 import logging
 from flask import render_template, request, jsonify, abort, redirect, url_for
-from flask.ext.security import current_user, login_required
+from flask_security import current_user, login_required
 from flask_socketio import emit, join_room
 from app import app, socketio
 from models import *

@@ -1,7 +1,7 @@
-from flask.ext.security import current_user, utils
-from flask.ext.admin.contrib import sqla
+from flask_security import current_user, utils
+from flask_admin.contrib import sqla
 from wtforms.fields import PasswordField
-from flask.ext.admin import Admin
+from flask_admin import Admin
 
 from app import app, db
 from models import User, Role
