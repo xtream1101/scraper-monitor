@@ -85,6 +85,19 @@ var _template = {
             '<td class="apikey-actions">{{actions}}</td>' +
         '</tr>'
     ),
+    dataScraperRow: _.template(
+        '<tr id="{{status}}-{{scraperKey}}">' +
+            '<td class="scraper-organization">{{organization}}</td>' +
+            '<td class="scraper-name">{{name}}</td>' +
+            '<td class="scraper-startTime">{{startTime}}</td>' +
+            '<td class="scraper-stopTime">{{stopTime}}</td>' +
+            '<td class="scraper-runtime">{{runtime}}</td>' +
+            '<td class="scraper-criticalCount">{{criticalCount}}</td>' +
+            '<td class="scraper-errorCount">{{errorCount}}</td>' +
+            '<td class="scraper-warningCount">{{warningCount}}</td>' +
+            '<td class="scraper-urlErrorCount">{{urlErrorCount}}</td>' +
+        '</tr>'
+    ),
 
     deleteBtn: _.template('<button class="btn-del" data-id="{{rowId}}">Delete</button>'),
     alert: _.template('<div class="alert alert-{{type}}" id="{{uid}}">' +
@@ -99,6 +112,11 @@ var _utils = {
 
         return moment(time).format("YYYY-MM-DD HH:mm")
     },
+    generateId: function(){
+      // Math.random should be unique because of its seeding algorithm.
+      // Convert it to base 36 (numbers + letters), and grab the first 9 characters after the decimal.
+      return '_' + Math.random().toString(36).substr(2, 9);
+    }
 };
 
 $(function(){
@@ -157,18 +175,18 @@ function initPage(){
         socket.on(socketListen, function( data ){
             console.log("WebSocket: ", data);
             if( page === '/data/scrapers/dev' || page === '/data/scrapers/prod' ){
-                addScraper(data);
+                addToScraperTable(data);
             }else if( page === '/manage/organizations' ){
                 addOrganizations(data);
             }else{
-                addToTable(data, socketListen);
+                addToManageTable(data, socketListen);
             }
         });
     }
 }
 
 function displayAlert( title, message, type ){
-    var uid = ID();  // Create a unique id for the alert element
+    var uid = _utils.generateId();  // Create a unique id for the alert element
     if (type == 'error'){
         type = 'danger';
     }
@@ -241,69 +259,72 @@ function setActiveMenuItem(){
 function addScraper( response ){
     var action = response.action;
     var data = response.data;
-    var $running = $('#running');
-    var $finished = $('#finished');
+    // var $running = $('#running');
+    // var $finished = $('#finished');
 
     $.each( data, function( i, scraper ){
+        var tableName = 'tbl-data-finished-scrapers';
         if( typeof scraper.runtime === 'undefined' ){
-            scraper.runtime = null;
+            tableName = 'tbl-data-running-scrapers';
         }
-        if( action === 'add' ){
-            scraper.startTime = _utils.formatTime(scraper.startTime)
-            if( scraper.stopTime !== null ){
-                scraper.stopTime = _utils.formatTime(scraper.stopTime)
-                // Check if scraper is not in finished
-                var scraperParentIdent = '#finished-' + scraper.scraperKey;
-                if( $(scraperParentIdent).length === 0 ){
-                    scraper.runClass = 'finished';
-                    $finished.append(_template.scraperWrapper(scraper))
-                }else{
-                    var $scraperParent = $(scraperParentIdent).find('.runs');
-                    // Add scraper run to parent in $running
-                    $scraperParent.append(_template.scraperRun(scraper));
-                }
-            }else{
-                // Not in running list so add it
-                // Check if scraper run has a scraper parent in $running
-                var scraperParentIdent = '#running-' + scraper.scraperKey;
-                if( $(scraperParentIdent).length === 0 ){
-                    scraper.runClass = 'running';
-                    $running.append(_template.scraperWrapper(scraper));
-                }else{
-                    var $scraperParent = $(scraperParentIdent).find('.runs');
-                    // Add scraper run to parent in $running
-                    $scraperParent.append(_template.scraperRun(scraper));
-                }
-            }
-        }else if( action === 'update' || action === 'increment' ){
-            var $scraperRun = $running.find('#run-' + scraper.rowId);
-            // Update the values
-            $.each( scraper, function( field, value ){
-                var $field = $scraperRun.find('.' + field).find('.value');
 
-                if( action === 'increment' ){
-                    // Get the current value and add to it
-                    var currVal = parseInt($field.text());
-                    value = currVal + value;
-                }
+        addToScraperTable(scraper, tableName);
+    //     if( action === 'add' ){
+    //         scraper.startTime = _utils.formatTime(scraper.startTime)
+    //         if( scraper.stopTime !== null ){
+    //             scraper.stopTime = _utils.formatTime(scraper.stopTime)
+    //             // Check if scraper is not in finished
+    //             var scraperParentIdent = '#finished-' + scraper.scraperKey;
+    //             if( $(scraperParentIdent).length === 0 ){
+    //                 scraper.runClass = 'finished';
+    //                 $finished.append(_template.scraperWrapper(scraper))
+    //             }else{
+    //                 var $scraperParent = $(scraperParentIdent).find('.runs');
+    //                 // Add scraper run to parent in $running
+    //                 $scraperParent.append(_template.scraperRun(scraper));
+    //             }
+    //         }else{
+    //             // Not in running list so add it
+    //             // Check if scraper run has a scraper parent in $running
+    //             var scraperParentIdent = '#running-' + scraper.scraperKey;
+    //             if( $(scraperParentIdent).length === 0 ){
+    //                 scraper.runClass = 'running';
+    //                 $running.append(_template.scraperWrapper(scraper));
+    //             }else{
+    //                 var $scraperParent = $(scraperParentIdent).find('.runs');
+    //                 // Add scraper run to parent in $running
+    //                 $scraperParent.append(_template.scraperRun(scraper));
+    //             }
+    //         }
+    //     }else if( action === 'update' || action === 'increment' ){
+    //         var $scraperRun = $running.find('#run-' + scraper.rowId);
+    //         // Update the values
+    //         $.each( scraper, function( field, value ){
+    //             var $field = $scraperRun.find('.' + field).find('.value');
 
-                $field.html(value);
-            });
+    //             if( action === 'increment' ){
+    //                 // Get the current value and add to it
+    //                 var currVal = parseInt($field.text());
+    //                 value = currVal + value;
+    //             }
 
-            // Check if stopTime exists, if so move out of $running
-            if( typeof scraper.stopTime !== 'undefined' ){
-                if( $scraperRun.siblings().length === 0 ){
-                    // Remove scraper parent since the last one just finished
-                    $scraperRun.parent().parent().remove();
-                }
-                moveScraperFinished($scraperRun, scraper);
-            }
-        }
+    //             $field.html(value);
+    //         });
+
+    //         // Check if stopTime exists, if so move out of $running
+    //         if( typeof scraper.stopTime !== 'undefined' ){
+    //             if( $scraperRun.siblings().length === 0 ){
+    //                 // Remove scraper parent since the last one just finished
+    //                 $scraperRun.parent().parent().remove();
+    //             }
+    //             moveScraperFinished($scraperRun, scraper);
+    //         }
+    //     }
     });
 
     // Display the headers for the first table in the list
-    $('#running').find('thead').first().removeClass('invisible');
-    $('#finished').find('thead').first().removeClass('invisible');
+    // $('#running').find('thead').first().removeClass('invisible');
+    // $('#finished').find('thead').first().removeClass('invisible');
 }
 
 function moveScraperFinished( $scraperRun, scraper ){
@@ -337,7 +358,7 @@ function addOrganizations( response ){
     });
 }
 
-function addToTable( response, tableName ){
+function addToManageTable( response, tableName ){
     var $table = $('#tbl-' + tableName);
     var action = response.action;
     var rows = response.data;
@@ -363,7 +384,9 @@ function addToTable( response, tableName ){
                     newRow = _template.manageGroupsRow(rowData);
                 }else if( page === '/manage/organizations' ){
                     newRow = _template.manageOrganizationsRow(rowData);
-                }           
+                }else if( page === '/data/scrapers/dev' || page === '/data/scrapers/prod' ){
+                    newRow = _template.dataScraperRow(rowData);
+                }
                 $table.append(newRow);
             }
 
@@ -376,8 +399,64 @@ function addToTable( response, tableName ){
     $table.trigger("update");
 }
 
-var ID = function(){
-  // Math.random should be unique because of its seeding algorithm.
-  // Convert it to base 36 (numbers + letters), and grab the first 9 characters after the decimal.
-  return '_' + Math.random().toString(36).substr(2, 9);
+function addToScraperTable( response ){
+    var action = response.action;
+    var rows = response.data;
+
+    $.each( rows, function( i, scraper ){
+        scraper.status = 'running';
+        if( scraper.stopTime != null ){
+            scraper.status = 'finished';
+        }
+
+        var $table = $('#tbl-data-' + scraper.status + '-scrapers');
+        var $row = $('#' + scraper.status + '-' + scraper.scraperKey);
+
+        if( typeof scraper.runtime === 'undefined' ){
+            scraper.runtime = '';
+        }
+
+        if( action === 'add' || action === 'start' || action === 'stop'){
+            scraper.startTime = _utils.formatTime(scraper.startTime)
+            scraper.stopTime = _utils.formatTime(scraper.stopTime)
+
+            if( action === 'stop' ){
+                var $oldRow = $('#running-' + scraper.scraperKey);
+                $oldRow.remove();
+            }
+
+            if( !$row.length ){
+                // Add the row
+                var newRow = _template.dataScraperRow(scraper);
+                $table.append(newRow);
+            }else{
+                // Update the row
+                $.each( scraper, function( field, value ){
+                    $row.find('.scraper-' + field).html(value);
+                });
+            }
+        }
+        if( action === 'increment' || action === 'update' ){
+            $.each( scraper, function( field, value ){
+                var fieldsToIncrement = ['criticalCount', 'errorCount', 'warningCount', 'urlErrorCount']
+                var $field = $row.find('.scraper-' + field);
+
+                if( fieldsToIncrement.indexOf(field) != -1){
+                    // Get the current value and add to it
+                    value = parseInt($field.text()) + value;
+                }
+
+                $field.html(value);
+            });
+
+        }else if( action === 'stop' ){
+            console.log("stoppiong scraper")
+        }else if( action === 'delete' ){
+            $row.remove();
+        }
+    });
+
+    // Update all tables on page
+    $('#tbl-data-running-scrapers').trigger("update");
+    $('#tbl-data-finished-scrapers').trigger("update");
 }

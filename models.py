@@ -210,6 +210,7 @@ class ScraperRun(db.Model):
         return {'id': self.id,
                 'rowId': self.uuid,
                 'uuid': self.uuid,
+                'organization': self.scraper.group.organization.name,
                 'name': self.scraper.name,
                 'scraperKey': self.scraper_key,
                 'group_id': self.group_id,

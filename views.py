@@ -416,7 +416,7 @@ def manage_scraper_edit():
     socketio.emit('manage-scrapers',
                   {'data': data, 'action': 'update'},
                   namespace='/manage/scrapers',
-                  room='organization-{org_id}'.format(scraper.group.organization.id)
+                  room='organization-{org_id}'.format(org_id=scraper.group.organization_id)
                   )
 
     return jsonify(rdata)
@@ -811,7 +811,7 @@ def get_data_scrapers(environment):
                                        .filter_by(scraper_key=scraper.key)\
                                        .filter_by(environment=environment.upper())\
                                        .order_by(ScraperRun.stop_time.desc())\
-                                       .limit(5).all()
+                                       .limit(1).all()
 
                 run_list = [i.serialize for i in runs]
                 scraper_list.extend(run_list)

@@ -5,13 +5,41 @@
 <h1 style="color: red;">DEV DATA</h1>
 {% endif %}
 <h2>Running Scrapers</h2>
-    <div id="running" class="accordion-table">
-        
-    </div>
+    <table id="tbl-data-running-scrapers" class="tablesorter-bootstrap tablesorter table table-bordered table-hover table-striped" role="grid">
+        <thead>
+            <tr>
+                <th>Organization</th>
+                <th>Name</th>
+                <th>Start Time</th>
+                <th>Stop Time</th>
+                <th>Runtime</th>
+                <th>Log Criticals</th>
+                <th>Log Errors</th>
+                <th>Log Warnings</th>
+                <th>Log URL Errors</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
 
 <h2>Finished Scrapers (History)</h2>
-    <div id="finished" class="accordion-table">
-
-    </div>
+    <table id="tbl-data-finished-scrapers" class="tablesorter-bootstrap tablesorter table table-bordered table-hover table-striped" role="grid">
+        <thead>
+            <tr>
+                <th>Organization</th>
+                <th>Name</th>
+                <th>Start Time</th>
+                <th>Stop Time</th>
+                <th>Runtime</th>
+                <th>Log Criticals</th>
+                <th>Log Errors</th>
+                <th>Log Warnings</th>
+                <th>Log URL Errors</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
 </div>
 {% endblock %}

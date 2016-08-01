@@ -116,8 +116,8 @@ class APIScraperLogging(Resource):
 
         socketio.emit('data-scrapers',
                       {'data': data, 'action': 'increment'},
-                      namespace='/data/scrapers/{}'.format(client_data['environment'].lower()),
-                      room='organization-' + str(log.scraper_run.scraper.group.organization_id)
+                      namespace='/data/scrapers/{env}'.format(env=client_data['environment'].lower()),
+                      room='organization-{org_id}'.format(org_id=log.scraper_run.scraper.group.organization_id)
                       )
 
         rdata['success'] = True
@@ -153,8 +153,8 @@ class APIScraperDataStart(Resource):
 
         socketio.emit('data-scrapers',
                       {'data': data, 'action': 'start'},
-                      namespace='/data/scrapers/{}'.format(client_data['environment'].lower()),
-                      room='organization-' + str(run.scraper.group.organization_id)
+                      namespace='/data/scrapers/{env}'.format(env=client_data['environment'].lower()),
+                      room='organization-{org_id}'.format(org_id=run.scraper.group.organization_id)
                       )
 
         rdata['success'] = True
@@ -193,16 +193,12 @@ class APIScraperDataStop(Resource):
 
         db.session.commit()
 
-        data = [{'rowId': client_data['scraperRun'],
-                 'scraperKey': client_data['scraperKey'],
-                 'stopTime': data['stopTime'],
-                 'groupId': run.scraper.group.id,
-                 }]
+        data = [run.serialize]
 
         socketio.emit('data-scrapers',
                       {'data': data, 'action': 'stop'},
-                      namespace='/data/scrapers/{}'.format(client_data['environment'].lower()),
-                      room='organization-' + str(run.scraper.group.organization.id)
+                      namespace='/data/scrapers/{env}'.format(env=client_data['environment'].lower()),
+                      room='organization-{org_id}'.format(org_id=run.scraper.group.organization_id)
                       )
 
         rdata['success'] = True
@@ -241,8 +237,8 @@ class APIScraperErrorUrl(Resource):
 
         socketio.emit('data-scrapers',
                       {'data': data, 'action': 'increment'},
-                      namespace='/data/scrapers/{}'.format(client_data['environment'].lower()),
-                      room='organization-' + str(url_error.scraper_run.scraper.group.organization.id)
+                      namespace='/data/scrapers/{env}'.format(env=client_data['environment'].lower()),
+                      room='organization-{org_id}'.format(org_id=url_error.scraper_run.scraper.group.organization_id)
                       )
 
         rdata['success'] = True
