@@ -23,8 +23,7 @@ class ExtendedRegisterForm(RegisterForm):
 
     def validate(self):
 
-        # Need this for the checks to work
-        Form.validate(self)
+        validation = Form.validate(self)
 
         vaild_emails = app.config.get('SECURITY_REGISTERABLE_EMAILS')
         pprint(self.email.data)
@@ -39,6 +38,12 @@ class ExtendedRegisterForm(RegisterForm):
         except (IndexError, ValueError):
             self.email.errors.append("Not a vaild email for this server")
             return False
+
+        # This will make sure that the other flask validation has passed or not
+        if not validation:
+            return False
+
+        return True
 
 
 security = Security(app, user_datastore, confirm_register_form=ExtendedRegisterForm)
