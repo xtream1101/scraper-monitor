@@ -158,7 +158,7 @@ def manage_apikey_edit():
              'message': "",
              }
     apikey_id = request.form['pk']
-    apikey_field = request.form['name'].strip()
+    # apikey_field = request.form['name'].strip()  # Not currently used
     apikey_new_name = request.form['value'].strip()
 
     # Check if the user has permission to update this value
@@ -510,7 +510,7 @@ def manage_group_edit():
              'message': "",
              }
     group_id = request.form['pk']
-    group_field = request.form['name'].strip()
+    # group_field = request.form['name'].strip()  # Not currently used
     group_new_name = request.form['value'].strip()
 
     # Check if the user has permission to update this value
