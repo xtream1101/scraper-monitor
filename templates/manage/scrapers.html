@@ -12,7 +12,7 @@
         <select id="scraper-group" class="select-group" name="group">
             {%- for group in groups %}
             <option value="{{ group.id }}">{{ group.organization }}.{{ group.name }}</option>
-            {%- endfor %}        
+            {%- endfor %}
         </select>
 
         <select id="scraper-owner" class="select-owner" name="owner">
@@ -36,7 +36,7 @@
                 <th>Name</th>
                 <th>Owner</th>
                 <th>Key</th>
-                <th>Date</th>
+                <th class="timestamp">Date</th>
                 <th>Actions</th>
             </tr>
         </thead>

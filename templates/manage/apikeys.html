@@ -12,7 +12,7 @@
         <select id="organization" class="select-organization" name="organization">
             {%- for organization in current_user.organizations %}
             <option value="{{ organization.id }}">{{ organization.name }}</option>
-            {%- endfor %}        
+            {%- endfor %}
         </select>
 
         <button type="submit" class="btn btn-success">Generate key</button>
@@ -29,7 +29,7 @@
                 <th>Organization</th>
                 <th>Name</th>
                 <th>Key</th>
-                <th>Date</th>
+                <th class="timestamp">Date</th>
                 <th>Actions</th>
             </tr>
         </thead>
