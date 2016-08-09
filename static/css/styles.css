@@ -25,7 +25,8 @@ body {
 }
 
 .timestamp {
-    width: 160px;
+    min-width: 160px;
+    white-space: nowrap;
 }
 
 label {
