@@ -252,6 +252,32 @@ class ScraperLog(db.Model):
     time_collected = db.Column(db.DateTime, default=datetime.datetime.now)
     run_uuid = db.Column(db.String(32), db.ForeignKey(SCHEMA + '.run.uuid'))
 
+    @property
+    def serialize(self):
+        """Return object data in easily serializeable format"""
+        return {'id': self.id,
+                'rowId': self.id,
+                'run_uuid': self.run_uuid,
+                'exc_info': self.exc_info,
+                'exc_text': self.exc_text,
+                'filename': self.filename,
+                'func_name': self.func_name,
+                'level_name': self.level_name,
+                'level_no': self.level_no,
+                'line_no': self.line_no,
+                'message': self.message,
+                'module': self.module,
+                'name': self.name,
+                'pathname': self.pathname,
+                'process': self.process,
+                'process_name': self.process_name,
+                'relative_created': self.relative_created,
+                'stack_info': self.stack_info,
+                'thread': self.thread,
+                'thread_name': self.thread_name,
+                'time_collected': datetime_to_str(self.time_collected),
+                }
+
 
 class ScraperUrlError(db.Model):
     __tablename__ = 'run_url_error'

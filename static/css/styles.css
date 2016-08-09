@@ -28,6 +28,23 @@ body {
     width: 160px;
 }
 
+label {
+    display: inline-block;
+    width: 5em;
+}
+
+.hroz-scroll {
+    overflow: scroll;
+}
+/*#tbl-data-scraper-logs {
+    table-layout: fixed;
+}*/
+.hover-data {
+    width: 100px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
 /* rows hidden by filtering (needed for child rows) */
 .tablesorter .filtered {
     display: none;

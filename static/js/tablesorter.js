@@ -1,4 +1,5 @@
 $(function(){
+    // Generic default table
     var $table = $('table').tablesorter({
         widgets: ["filter"],
         widgetOptions : {
@@ -24,5 +25,8 @@ $(function(){
         filter[ col === 'all' ? totalColumns : col ] = $this.text();
         $table.trigger('search', [ filter ]);
         return false;
-    });  
+    });
+
+    // Custom table sorters
+
 });

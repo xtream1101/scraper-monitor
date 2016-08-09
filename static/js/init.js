@@ -88,7 +88,7 @@ var _template = {
     dataScraperRow: _.template(
         '<tr id="{{status}}-{{scraperKey}}">' +
             '<td class="scraper-organization">{{organization}}</td>' +
-            '<td class="scraper-name">{{name}}</td>' +
+            '<td class="scraper-name"><a href="{{scraperKey}}">{{name}}</a></td>' +
             '<td class="scraper-startTime">{{startTime}}</td>' +
             '<td class="scraper-stopTime">{{stopTime}}</td>' +
             '<td class="scraper-runtime">{{runtime}}</td>' +
@@ -98,12 +98,37 @@ var _template = {
             '<td class="scraper-urlErrorCount">{{urlErrorCount}}</td>' +
         '</tr>'
     ),
+    dataScraperRunRow: _.template(
+        '<tr id="{{rowId}}">' +
+            '<td class="scraper-uuid"><a href="#">{{uuid}}</a></td>' +
+            '<td class="scraper-startTime">{{startTime}}</td>' +
+            '<td class="scraper-stopTime">{{stopTime}}</td>' +
+            '<td class="scraper-runtime">{{runtime}}</td>' +
+            '<td class="scraper-criticalCount">{{criticalCount}}</td>' +
+            '<td class="scraper-errorCount">{{errorCount}}</td>' +
+            '<td class="scraper-warningCount">{{warningCount}}</td>' +
+            '<td class="scraper-urlErrorCount">{{urlErrorCount}}</td>' +
+        '</tr>'
+    ),
+    dataScraperLogRow: _.template(
+        '<tr id="{{rowId}}">' +
+            '<td class="scraper-time_collected">{{time_collected}}</td>' +
+            '<td class="scraper-filename">{{filename}}</td>' +
+            '<td class="scraper-module">{{module}}</td>' +
+            '<td class="scraper-func_name">{{func_name}}</td>' +
+            '<td class="scraper-line_no">{{line_no}}</td>' +
+            '<td class="scraper-level_name">{{level_name}}</td>' +
+            '<td class="scraper-thread_name">{{thread_name}}</td>' +
+            '<td class="scraper-message" title="{{message}}"><div class="hover-data">{{message}}</div></td>' +
+            '<td class="scraper-exc_text" title="{{exc_text}}"><div class="hover-data">{{exc_text}}</div></td>' +
+        '</tr>'
+    ),
 
     deleteBtn: _.template('<button class="btn-del" data-id="{{rowId}}">Delete</button>'),
     alert: _.template('<div class="alert alert-{{type}}" id="{{uid}}">' +
                         '<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>' +
                         '<strong>{{title}}</strong> {{message}}' +
-                     '</div>'),
+                      '</div>'),
 }
 
 var _utils = {
@@ -111,6 +136,11 @@ var _utils = {
         if( time === null ) return '';
 
         return moment(time).format("YYYY-MM-DD HH:mm")
+    },
+    formatTimestamp: function( time ){
+        if( time === null ) return '';
+
+        return moment(time).format("YYYY-MM-DD HH:mm:ss")
     },
     generateId: function(){
       // Math.random should be unique because of its seeding algorithm.
@@ -120,6 +150,7 @@ var _utils = {
 };
 
 $(function(){
+    $(document).tooltip();
     initPage();
 
     // Opens/selects correct menu item
@@ -130,6 +161,20 @@ $(function(){
         $.getJSON(url + '/delete/' + id, function( data ){
             console.log("Delete Action response: ", data);
             displayAlert("", data.message, data.status);
+        });
+    });
+
+    // $('body').on( 'click', '.hover-data', function( event ){
+    //     var content = event.currentTarget.innerHTML;
+    //     $(document).tooltip({title: content});
+    //     console.log(content)
+    // });
+
+    $('body').on( 'click', '#tbl-data-scraper-runs tr', function( event ){
+        var runUuid = event.currentTarget.id;
+        $.getJSON('/data/api/scraper/logs/' + runUuid, function( data ){
+            console.log("Run Logs response: ", data);
+            addToScraperLogsTable(data);
         });
     });
 
@@ -169,6 +214,11 @@ function initPage(){
 
     }else if( page === '/data/scrapers/dev' || page === '/data/scrapers/prod' ){
         socketListen = 'data-scrapers';
+    }else{
+        var path = page.split('/');
+        if( path[1] === 'data' && path[2] === 'scrapers' ){
+            populateScraperRuns(path[4], path[3]);
+        }
     }
 
     if( socketListen !== null ){
@@ -227,6 +277,13 @@ function populateUserDropdown( organizationGroupId ){
         $options.css('box-shadow', '0px 0px 20px 0px blue');
         setTimeout(function(){ $options.css('box-shadow', ''); }, 1500);
         $options.trigger("chosen:updated");
+    });
+}
+
+function populateScraperRuns(scraperKey, env){
+    $.getJSON(baseUrl + '/data/api/scraper/' + scraperKey + '/' + env, function( data ){
+        $('#scraper-name').html(data.data[0].organization + '.' + data.data[0].name);
+        addToScraperRunTable(data);
     });
 }
 
@@ -459,4 +516,66 @@ function addToScraperTable( response ){
     // Update all tables on page
     $('#tbl-data-running-scrapers').trigger("update");
     $('#tbl-data-finished-scrapers').trigger("update");
+}
+
+
+function addToScraperRunTable( response ){
+    var rows = response.data;
+
+    $.each( rows, function( i, run ){
+        run.status = 'running';
+        if( run.stopTime != null ){
+            run.status = 'finished';
+        }
+
+        var $table = $('#tbl-data-scraper-runs');
+        var $row = $('#scraper-run-' + run.rowId);
+
+        if( typeof run.runtime === 'undefined' ){
+            run.runtime = '';
+        }
+
+        run.startTime = _utils.formatTime(run.startTime)
+        run.stopTime = _utils.formatTime(run.stopTime)
+
+        if( !$row.length ){
+            // Add the row
+            var newRow = _template.dataScraperRunRow(run);
+            $table.append(newRow);
+        }else{
+            // Update the row
+            $.each( run, function( field, value ){
+                $row.find('.scraper-run-' + field).html(value);
+            });
+        }
+    });
+
+    // Update all tables on page
+    $('#tbl-data-scraper-runs').trigger("update");
+}
+
+function addToScraperLogsTable( response ){
+    var $table = $('#tbl-data-scraper-logs');
+    $.tablesorter.clearTableBody( $table );
+    var rows = response.data;
+
+    $.each( rows, function( i, log ){
+        var $row = $('#scraper-log-' + log.rowId);
+
+        log.time_collected = _utils.formatTimestamp(log.time_collected)
+
+        if( !$row.length ){
+            // Add the row
+            var newRow = _template.dataScraperLogRow(log);
+            $table.append(newRow);
+        }else{
+            // Update the row
+            $.each( log, function( field, value ){
+                $row.find('.scraper-log-' + field).html(value);
+            });
+        }
+    });
+
+    // Update all tables on page
+    $table.trigger("update");
 }

@@ -783,6 +783,46 @@ def manage_organizations_delete(organization_id):
 ##
 ###############################################################################
 ###############################################################################
+@app.route('/data/api/scraper/<string:scraper_key>/<string:environment>', methods=['GET'])
+@login_required
+def data_scraper_runs(scraper_key, environment):
+    run_list = []
+    scraper = Scraper.query.filter_by(key=scraper_key).scalar()
+
+    if current_user not in scraper.group.organization.users:
+        abort(403)
+
+    runs = ScraperRun.query.filter_by(environment=environment.upper())\
+                           .filter_by(scraper_key=scraper_key)\
+                           .order_by(ScraperRun.stop_time.desc())\
+                           .limit(10).all()
+
+    run = [i.serialize for i in runs]
+    run_list.extend(run)
+
+    rdata = {'data': run_list}
+    return jsonify(rdata)
+
+
+@app.route('/data/api/scraper/logs/<string:run_uuid>', methods=['GET'])
+@login_required
+def data_scraper_run_logs(run_uuid):
+    rdata = {'data': None}
+
+    scraper_logs = ScraperLog.query.filter_by(run_uuid=run_uuid).all()
+
+    if len(scraper_logs) <= 0:
+        return jsonify(rdata)
+
+    if current_user not in scraper_logs[0].scraper_run.group.organization.users:
+        abort(403)
+
+    logs = [i.serialize for i in scraper_logs]
+
+    rdata['data'] = logs
+    return jsonify(rdata)
+
+
 @socketio.on('connect', namespace='/data/scrapers/dev')
 def connect_data_scrapers_dev():
     if not current_user.is_authenticated:
@@ -829,8 +869,17 @@ def data_scrapers():
 @app.route('/data/scrapers/<string:environment>', methods=['GET'])
 @login_required
 def data_scrapers_env(environment):
-    # print("app", environment)
     if environment not in ['dev', 'prod']:
         abort(404)
 
     return render_template('data/scrapers.html', environment=environment)
+
+
+@app.route('/data/scrapers/<string:environment>/<string:scraper_key>', methods=['GET'])
+@login_required
+def data_scraper(environment, scraper_key):
+    if environment not in ['dev', 'prod']:
+        abort(404)
+
+    return render_template('data/scraper.html', environment=environment,
+                                                scraper_key=scraper_key)
