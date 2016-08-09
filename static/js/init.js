@@ -142,6 +142,16 @@ var _utils = {
 
         return moment(time).format("YYYY-MM-DD HH:mm:ss")
     },
+    formatRuntime: function( seconds ){
+        function pad(num) {
+            return ("0" + num).slice(-2);
+        }
+        var minutes = Math.floor(seconds / 60);
+        seconds = seconds % 60;
+        var hours = Math.floor(minutes / 60);
+        minutes = minutes % 60;
+        return pad(hours) + ":" + pad(minutes) + ":" + pad(seconds);
+    },
     generateId: function(){
       // Math.random should be unique because of its seeding algorithm.
       // Convert it to base 36 (numbers + letters), and grab the first 9 characters after the decimal.
@@ -416,6 +426,7 @@ function addToScraperTable( response ){
         if( action === 'add' || action === 'start' || action === 'stop'){
             scraper.startTime = _utils.formatTime(scraper.startTime)
             scraper.stopTime = _utils.formatTime(scraper.stopTime)
+            scraper.runtime = _utils.formatRuntime(scraper.runtime)
 
             if( action === 'stop' ){
                 var $oldRow = $('#running-' + scraper.scraperKey);
@@ -477,6 +488,8 @@ function addToScraperRunTable( response ){
 
         run.startTime = _utils.formatTime(run.startTime)
         run.stopTime = _utils.formatTime(run.stopTime)
+
+        run.runtime = _utils.formatRuntime(run.runtime)
 
         if( !$row.length ){
             // Add the row

@@ -5,6 +5,7 @@
 <h1 style="color: red;">DEV DATA</h1>
 {% endif %}
 <h2>Logs for <span id="scraper-run-info"></span></h2>
+<div class="hroz-scroll">
     <table id="tbl-data-scraper-logs" class="tablesorter-bootstrap tablesorter table table-bordered table-hover table-striped" role="grid">
         <thead>
             <tr>
@@ -22,6 +23,7 @@
         <tbody>
         </tbody>
     </table>
+</div>
 
 <h2>History of <span id="scraper-name"></span></h2>
     <table id="tbl-data-scraper-runs" class="tablesorter-bootstrap tablesorter table table-bordered table-hover table-striped" role="grid">
@@ -30,7 +32,7 @@
                 <th>Run Id</th>
                 <th class="timestamp">Stop Time</th>
                 <th class="timestamp">Start Time</th>
-                <th>Runtime</th>
+                <th>Runtime (hh:mm:ss)</th>
                 <th>Log Criticals</th>
                 <th>Log Errors</th>
                 <th>Log Warnings</th>
