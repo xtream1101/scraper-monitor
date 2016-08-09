@@ -164,12 +164,6 @@ $(function(){
         });
     });
 
-    // $('body').on( 'click', '.hover-data', function( event ){
-    //     var content = event.currentTarget.innerHTML;
-    //     $(document).tooltip({title: content});
-    //     console.log(content)
-    // });
-
     $('body').on( 'click', '#tbl-data-scraper-runs tr', function( event ){
         var runUuid = event.currentTarget.id;
         $.getJSON('/data/api/scraper/logs/' + runUuid, function( data ){
@@ -326,62 +320,8 @@ function addScraper( response ){
         }
 
         addToScraperTable(scraper, tableName);
-    //     if( action === 'add' ){
-    //         scraper.startTime = _utils.formatTime(scraper.startTime)
-    //         if( scraper.stopTime !== null ){
-    //             scraper.stopTime = _utils.formatTime(scraper.stopTime)
-    //             // Check if scraper is not in finished
-    //             var scraperParentIdent = '#finished-' + scraper.scraperKey;
-    //             if( $(scraperParentIdent).length === 0 ){
-    //                 scraper.runClass = 'finished';
-    //                 $finished.append(_template.scraperWrapper(scraper))
-    //             }else{
-    //                 var $scraperParent = $(scraperParentIdent).find('.runs');
-    //                 // Add scraper run to parent in $running
-    //                 $scraperParent.append(_template.scraperRun(scraper));
-    //             }
-    //         }else{
-    //             // Not in running list so add it
-    //             // Check if scraper run has a scraper parent in $running
-    //             var scraperParentIdent = '#running-' + scraper.scraperKey;
-    //             if( $(scraperParentIdent).length === 0 ){
-    //                 scraper.runClass = 'running';
-    //                 $running.append(_template.scraperWrapper(scraper));
-    //             }else{
-    //                 var $scraperParent = $(scraperParentIdent).find('.runs');
-    //                 // Add scraper run to parent in $running
-    //                 $scraperParent.append(_template.scraperRun(scraper));
-    //             }
-    //         }
-    //     }else if( action === 'update' || action === 'increment' ){
-    //         var $scraperRun = $running.find('#run-' + scraper.rowId);
-    //         // Update the values
-    //         $.each( scraper, function( field, value ){
-    //             var $field = $scraperRun.find('.' + field).find('.value');
-
-    //             if( action === 'increment' ){
-    //                 // Get the current value and add to it
-    //                 var currVal = parseInt($field.text());
-    //                 value = currVal + value;
-    //             }
-
-    //             $field.html(value);
-    //         });
-
-    //         // Check if stopTime exists, if so move out of $running
-    //         if( typeof scraper.stopTime !== 'undefined' ){
-    //             if( $scraperRun.siblings().length === 0 ){
-    //                 // Remove scraper parent since the last one just finished
-    //                 $scraperRun.parent().parent().remove();
-    //             }
-    //             moveScraperFinished($scraperRun, scraper);
-    //         }
-    //     }
     });
 
-    // Display the headers for the first table in the list
-    // $('#running').find('thead').first().removeClass('invisible');
-    // $('#finished').find('thead').first().removeClass('invisible');
 }
 
 function moveScraperFinished( $scraperRun, scraper ){
