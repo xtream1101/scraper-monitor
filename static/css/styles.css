@@ -40,9 +40,19 @@ label {
 /*#tbl-data-scraper-logs {
     table-layout: fixed;
 }*/
-.hover-data {
+.run-uuid {
     width: 100px;
     overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.scraper-name {
+    white-space: nowrap;
+}
+.hover-data {
+    width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
 }
 

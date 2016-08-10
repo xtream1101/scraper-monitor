@@ -225,6 +225,7 @@ class ScraperRun(db.Model):
                 'errorCount': self.error_count,
                 'warningCount': self.warning_count,
                 'urlErrorCount': self.url_error_count,
+                'annotation': self.annotation,
                 }
 
 

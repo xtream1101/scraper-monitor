@@ -88,39 +88,47 @@ var _template = {
     dataScraperRow: _.template(
         '<tr id="{{status}}-{{scraperKey}}">' +
             '<td class="scraper-organization">{{organization}}</td>' +
-            '<td class="scraper-name"><a href="{{scraperKey}}">{{name}}</a></td>' +
+            '<td class="scraper-name"><a href="/data/scrapers/dev/{{scraperKey}}">{{name}}</a></td>' +
             '<td class="scraper-startTime">{{startTime}}</td>' +
             '<td class="scraper-stopTime">{{stopTime}}</td>' +
             '<td class="scraper-runtime">{{runtime}}</td>' +
             '<td class="scraper-criticalCount">{{criticalCount}}</td>' +
             '<td class="scraper-errorCount">{{errorCount}}</td>' +
             '<td class="scraper-warningCount">{{warningCount}}</td>' +
+            '<td class="scraper-refDataCount">{{refDataCount}}</td>' +
+            '<td class="scraper-refDataSuccessCount">{{refDataSuccessCount}}</td>' +
+            '<td class="scraper-totalUrlsHit">{{totalUrlsHit}}</td>' +
             '<td class="scraper-urlErrorCount">{{urlErrorCount}}</td>' +
+            '<td class="scraper-annotation">{{annotation}}</td>' +
         '</tr>'
     ),
     dataScraperRunRow: _.template(
         '<tr id="{{rowId}}">' +
-            '<td class="scraper-uuid"><a href="#">{{uuid}}</a></td>' +
-            '<td class="scraper-startTime">{{startTime}}</td>' +
-            '<td class="scraper-stopTime">{{stopTime}}</td>' +
-            '<td class="scraper-runtime">{{runtime}}</td>' +
-            '<td class="scraper-criticalCount">{{criticalCount}}</td>' +
-            '<td class="scraper-errorCount">{{errorCount}}</td>' +
-            '<td class="scraper-warningCount">{{warningCount}}</td>' +
-            '<td class="scraper-urlErrorCount">{{urlErrorCount}}</td>' +
+            '<td class="scraper-run-uuid"><div class="run-uuid"><a href="#">{{uuid}}</a></div></td>' +
+            '<td class="scraper-run-startTime">{{startTime}}</td>' +
+            '<td class="scraper-run-stopTime">{{stopTime}}</td>' +
+            '<td class="scraper-run-runtime">{{runtime}}</td>' +
+            '<td class="scraper-run-criticalCount">{{criticalCount}}</td>' +
+            '<td class="scraper-run-errorCount">{{errorCount}}</td>' +
+            '<td class="scraper-run-warningCount">{{warningCount}}</td>' +
+            '<td class="scraper-run-refDataCount">{{refDataCount}}</td>' +
+            '<td class="scraper-run-refDataSuccessCount">{{refDataSuccessCount}}</td>' +
+            '<td class="scraper-run-totalUrlsHit">{{totalUrlsHit}}</td>' +
+            '<td class="scraper-run-urlErrorCount">{{urlErrorCount}}</td>' +
+            '<td class="scraper-run-annotation">{{annotation}}</td>' +
         '</tr>'
     ),
     dataScraperLogRow: _.template(
         '<tr id="{{rowId}}">' +
-            '<td class="scraper-time_collected">{{time_collected}}</td>' +
-            '<td class="scraper-filename">{{filename}}</td>' +
-            '<td class="scraper-module">{{module}}</td>' +
-            '<td class="scraper-func_name">{{func_name}}</td>' +
-            '<td class="scraper-line_no">{{line_no}}</td>' +
-            '<td class="scraper-level_name">{{level_name}}</td>' +
-            '<td class="scraper-thread_name">{{thread_name}}</td>' +
-            '<td class="scraper-message" title="{{message}}"><div class="hover-data">{{message}}</div></td>' +
-            '<td class="scraper-exc_text" title="{{exc_text}}"><div class="hover-data">{{exc_text}}</div></td>' +
+            '<td class="scraper-run-log-time_collected">{{time_collected}}</td>' +
+            '<td class="scraper-run-log-filename">{{filename}}</td>' +
+            '<td class="scraper-run-log-module">{{module}}</td>' +
+            '<td class="scraper-run-log-func_name">{{func_name}}</td>' +
+            '<td class="scraper-run-log-line_no">{{line_no}}</td>' +
+            '<td class="scraper-run-log-level_name">{{level_name}}</td>' +
+            '<td class="scraper-run-log-thread_name">{{thread_name}}</td>' +
+            '<td class="scraper-run-log-message" title="{{message}}"><div class="hover-data">{{message}}</div></td>' +
+            '<td class="scraper-run-log-exc_text" title="{{exc_text}}"><div class="hover-data">{{exc_text}}</div></td>' +
         '</tr>'
     ),
 
@@ -140,10 +148,10 @@ var _utils = {
     formatTimestamp: function( time ){
         if( time === null ) return '';
 
-        return moment(time).format("YYYY-MM-DD HH:mm:ss")
+        return moment(time).format("YYYY-MM-DD HH:mm:ss.SS")
     },
     formatRuntime: function( seconds ){
-        function pad(num) {
+        function pad( num ){
             return ("0" + num).slice(-2);
         }
         var minutes = Math.floor(seconds / 60);
@@ -174,8 +182,8 @@ $(function(){
         });
     });
 
-    $('body').on( 'click', '#tbl-data-scraper-runs tr', function( event ){
-        var runUuid = event.currentTarget.id;
+    $('body').on( 'click', '.scraper-run-uuid', function( event ){
+        var runUuid = event.currentTarget.parentElement.id;
         $.getJSON('/data/api/scraper/logs/' + runUuid, function( data ){
             console.log("Run Logs response: ", data);
             addToScraperLogsTable(data);
