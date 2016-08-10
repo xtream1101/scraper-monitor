@@ -12,7 +12,7 @@
         <select id="organization" class="select-organization" name="organization">
             {%- for organization in current_user.organizations %}
             <option value="{{ organization.id }}">{{ organization.name }}</option>
-            {%- endfor %}        
+            {%- endfor %}
         </select>
 
         <button type="submit" class="btn btn-success">Add Group</button>
@@ -23,7 +23,7 @@
 
     <input class="search" type="search" data-column="all">
     <button type="button" class="reset">Reset Search</button>
-    <table id="tbl-manage-groups" class="tablesorter-bootstrap tablesorter table table-bordered table-hover table-striped" role="grid">
+    <table id="tbl-manage-groups" class="simple-table tablesorter-bootstrap tablesorter table table-bordered table-hover table-striped" role="grid">
         <thead>
             <tr>
                 <th>Organization</th>
