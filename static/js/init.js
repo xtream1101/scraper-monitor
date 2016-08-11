@@ -104,7 +104,7 @@ var _template = {
     ),
     dataScraperRunRow: _.template(
         '<tr id="{{rowId}}">' +
-            '<td class="scraper-run-uuid"><div class="run-uuid"><a href="#">{{uuid}}</a></div></td>' +
+            '<td class="scraper-run-uuid"><div class="run-uuid uuid"><a href="#">{{uuid}}</a></div></td>' +
             '<td class="scraper-run-startTime">{{startTime}}</td>' +
             '<td class="scraper-run-stopTime">{{stopTime}}</td>' +
             '<td class="scraper-run-runtime">{{runtime}}</td>' +
@@ -168,6 +168,7 @@ var _utils = {
 };
 
 $(function(){
+    // Tooltip is used for the log table to view the traceback and the message if they are to long
     $(document).tooltip();
     initPage();
 
@@ -186,6 +187,7 @@ $(function(){
         var runUuid = event.currentTarget.parentElement.id;
         $.getJSON('/data/api/scraper/logs/' + runUuid, function( data ){
             console.log("Run Logs response: ", data);
+            $('#scraper-run-info').html(runUuid);
             addToScraperLogsTable(data);
         });
     });

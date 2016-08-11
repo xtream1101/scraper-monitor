@@ -29,22 +29,20 @@ body {
     white-space: nowrap;
 }
 
-label {
-    display: inline-block;
-    width: 5em;
-}
-
 .hroz-scroll {
     overflow: scroll;
 }
-/*#tbl-data-scraper-logs {
-    table-layout: fixed;
-}*/
+
+.uuid {
+    font-family: "Lucida Console", Monaco, monospace;
+}
+
 .run-uuid {
     width: 100px;
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
 
 .scraper-name {
     white-space: nowrap;
@@ -56,13 +54,27 @@ label {
     white-space: nowrap;
 }
 
+
+.tablesorter-header {
+    background-image: url(/static/images/sort_both.gif);
+    background-repeat: no-repeat;
+    background-position: center right;
+    cursor: pointer;
+}
+.tablesorter-headerAsc {
+    background-image: url(/static/images/sort_asc.gif);
+}
+.tablesorter-headerDesc {
+    background-image: url(/static/images/sort_desc.gif);
+}
+
 /* rows hidden by filtering (needed for child rows) */
-.tablesorter .filtered {
+table.tablesorter .filtered {
     display: none;
 }
 
 /* ajax error row */
-.tablesorter .tablesorter-errorRow td {
+/*.tablesorter .tablesorter-errorRow td {
     text-align: center;
     cursor: pointer;
     background-color: #e6bf99;
@@ -117,8 +129,8 @@ label {
 }
 
 
-
-
+*/
+/*
 .select-data_type {
     width: 80px;
 }
@@ -130,7 +142,7 @@ label {
 .scraper-run {
     padding: 3px;
 }
-
+*/
 #app-menu {
     overflow: auto;
     font-family: verdana;

@@ -4,7 +4,8 @@
     {% if environment.lower() == 'dev' %}
     <h1 style="color: red;">DEV DATA</h1>
     {% endif %}
-    <h2>Logs for <span id="scraper-run-info"></span></h2>
+    <h1><span id="scraper-name"></span></h1>
+    <h2>Logs for run: <span id="scraper-run-info" class="uuid"></span></h2>
     <div class="hroz-scroll">
         <table id="tbl-data-scraper-logs" class="tablesorter-bootstrap tablesorter table table-bordered table-hover table-striped" role="grid">
             <thead>
@@ -25,7 +26,7 @@
         </table>
     </div>
 
-    <h2>History of <span id="scraper-name"></span></h2>
+    <h2>History (last 10 runs)</h2>
     <div class="hroz-scroll">
         <table id="tbl-data-scraper-runs" class="simple-table tablesorter-bootstrap tablesorter table table-bordered table-hover table-striped" role="grid">
             <thead>

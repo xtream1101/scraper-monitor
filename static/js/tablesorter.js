@@ -28,7 +28,6 @@ $(function(){
     });
 
     // Custom table sorters
-    //
     var $logsTable = $('#tbl-data-scraper-logs').tablesorter({
         widgets: ["filter"],
         widgetOptions : {
@@ -41,7 +40,7 @@ $(function(){
             filter_columnFilters: true,
             filter_placeholder: { search : 'Search...' },
             filter_saveFilters : true,
-            filter_reset: '.reset'
+            filter_reset: '.log-reset'
         }
     });
 
