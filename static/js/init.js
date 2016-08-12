@@ -150,15 +150,18 @@ var _utils = {
 
         return moment(time).format("YYYY-MM-DD HH:mm:ss.SS")
     },
-    formatRuntime: function( seconds ){
-        function pad( num ){
-            return ("0" + num).slice(-2);
-        }
-        var minutes = Math.floor(seconds / 60);
-        seconds = seconds % 60;
-        var hours = Math.floor(minutes / 60);
-        minutes = minutes % 60;
-        return pad(hours) + ":" + pad(minutes) + ":" + pad(seconds);
+    formatRuntime: function( totalSeconds ){
+        var hours   = Math.floor(totalSeconds / 3600);
+        var minutes = Math.floor((totalSeconds - (hours * 3600)) / 60);
+        var seconds = totalSeconds - (hours * 3600) - (minutes * 60);
+
+        // round seconds
+        seconds = Math.round(seconds)
+
+        var result = (hours < 10 ? "0" + hours : hours);
+        result += ":" + (minutes < 10 ? "0" + minutes : minutes);
+        result += ":" + (seconds  < 10 ? "0" + seconds : seconds);
+        return result;
     },
     generateId: function(){
       // Math.random should be unique because of its seeding algorithm.
@@ -297,6 +300,7 @@ function populateUserDropdown( organizationGroupId ){
 function populateScraperRuns(scraperKey, env){
     $.getJSON(baseUrl + '/data/api/scraper/' + scraperKey + '/' + env, function( data ){
         $('#scraper-name').html(data.data[0].organization + '.' + data.data[0].name);
+        console.log("Scraper Run Response:", data);
         addToScraperRunTable(data);
     });
 }
@@ -330,8 +334,6 @@ function setActiveMenuItem(){
 function addScraper( response ){
     var action = response.action;
     var data = response.data;
-    // var $running = $('#running');
-    // var $finished = $('#finished');
 
     $.each( data, function( i, scraper ){
         var tableName = 'tbl-data-finished-scrapers';
@@ -411,8 +413,7 @@ function addToManageTable( response, tableName ){
             $row.remove();
         }
     });
-    // $table.find('a').editable({url: '/manage/api/stuff'});
-    // $('#tbl-' + tableName + ' a').editable();
+
     $table.trigger("update");
 }
 
