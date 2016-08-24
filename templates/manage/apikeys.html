@@ -1,6 +1,6 @@
 {% extends "layout.html" %}
 {% block body %}
-<div id="main" class="container">
+<div id="main" class="">
 
     <form  action="" method="post" id="add-apikey" class="form-horizontal">
         <h4>Generate New Api Key</h4>
@@ -9,21 +9,27 @@
         placeholder="Key name" value="{{ request.form.name }}"
         required>
 
-        <input type="text" id="host" name="host" class="input-xlarge"
-        placeholder="Allowed Host" value="{{ request.form.host }}">
+        <select id="organization" class="select-organization" name="organization">
+            {%- for organization in current_user.organizations %}
+            <option value="{{ organization.id }}">{{ organization.name }}</option>
+            {%- endfor %}
+        </select>
 
         <button type="submit" class="btn btn-success">Generate key</button>
     </form>
 
+
     <h2>All API Keys</h2>
-    <table id="tbl-manage-apikeys" class="display table-hover table-striped">
+
+    <input class="search" type="search" data-column="all">
+    <button type="button" class="reset">Reset Search</button>
+    <table id="tbl-manage-apikeys" class="simple-table tablesorter-bootstrap tablesorter table table-bordered table-hover table-striped" role="grid">
         <thead>
             <tr>
-                <th>id</th>
+                <th>Organization</th>
                 <th>Name</th>
                 <th>Key</th>
-                <th>Host</th>
-                <th>Date</th>
+                <th class="timestamp">Date</th>
                 <th>Actions</th>
             </tr>
         </thead>

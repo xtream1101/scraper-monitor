@@ -1,8 +1,136 @@
 body {
-    padding-top: 60px;
-    padding-bottom: 100px;
+    margin: 0px;
+    padding: 0px
 }
 
+#app-container {
+    margin-left: 250px;
+    padding: 1%;
+    padding-right: 3%;
+}
+@media (min-width: 1050px) and (max-width: 1200px) {
+    #app-container {
+        margin-left: 20%;
+    }
+}
+@media (max-width: 1050px) {
+    #app-container {
+        margin-left: 200px;
+    }
+}
+@media (max-width: 767px) {
+    #app-container {
+        margin-left: 0;
+    }
+}
+
+.timestamp {
+    min-width: 160px;
+    white-space: nowrap;
+}
+
+.hroz-scroll {
+    overflow: scroll;
+}
+
+.uuid {
+    font-family: "Lucida Console", Monaco, monospace;
+}
+
+.run-uuid {
+    width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+.scraper-name {
+    white-space: nowrap;
+}
+.hover-data {
+    width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+.tablesorter-header {
+    background-image: url(/static/images/sort_both.gif);
+    background-repeat: no-repeat;
+    background-position: center right;
+    cursor: pointer;
+}
+.tablesorter-headerAsc {
+    background-image: url(/static/images/sort_asc.gif);
+}
+.tablesorter-headerDesc {
+    background-image: url(/static/images/sort_desc.gif);
+}
+
+/* rows hidden by filtering (needed for child rows) */
+table.tablesorter .filtered {
+    display: none;
+}
+
+/* ajax error row */
+/*.tablesorter .tablesorter-errorRow td {
+    text-align: center;
+    cursor: pointer;
+    background-color: #e6bf99;
+}
+
+.panel-heading {
+    cursor: pointer;
+}
+.panel-heading td {
+    background-color: #F1F1F1;
+    padding: 15px 10px;
+}
+.panel-heading:hover td {
+    background-color: #DEDEDE;
+}
+.panel-heading td:first-child {
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+    padding-left: 10px;
+}
+.panel-heading td:last-child {
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    padding-right: 10px;
+}
+.accordion-table table {
+    margin-bottom: 0;
+}
+.accordion-table thead {
+    font-size: 10px;
+    color: rgba(0, 0, 0, 0.4);
+    text-transform: uppercase;
+}
+.accordion-table thead.invisible {
+    color: rgba(0,0,0,0);
+}
+.accordion-table thead.invisible tr th {
+    height: 0px;
+    padding: 0 8px;
+    line-height: 0px;
+}
+.accordion-table .table {
+    margin-bottom: 3px;
+}
+.accordion-table .table * {
+    border: 0;
+}
+.scraper-name {
+    width: 200px;
+    word-wrap: break-word;
+    word-break: break-all;
+}
+
+
+*/
+/*
 .select-data_type {
     width: 80px;
 }
@@ -11,19 +139,141 @@ body {
     width: 120px;
 }
 
-/* jQuery DataTables */
-table.dataTable thead .sorting {
-  background-image: url("../images/sort_both.png");
+.scraper-run {
+    padding: 3px;
 }
-table.dataTable thead .sorting_asc {
-  background-image: url("../images/sort_asc.png");
+*/
+#app-menu {
+    overflow: auto;
+    font-family: verdana;
+    font-size: 12px;
+    font-weight: 200;
+    background-color: #2e353d;
+    position: fixed;
+    top: 0px;
+    width: 20%;
+    min-width: 200px;
+    max-width: 250px;
+    height: 100%;
+    color: #e1ffff;
 }
-table.dataTable thead .sorting_desc {
-  background-image: url("../images/sort_desc.png");
+#app-menu .brand {
+    background-color: #23282e;
+    line-height: 50px;
+    display: block;
+    text-align: center;
+    font-size: 14px;
 }
-table.dataTable thead .sorting_asc_disabled {
-  background-image: url("../images/sort_asc_disabled.png");
+#app-menu .toggle-btn {
+    display: none;
 }
-table.dataTable thead .sorting_desc_disabled {
-  background-image: url("../images/sort_desc_disabled.png");
+#app-menu ul,
+#app-menu li {
+    list-style: none;
+    padding: 0px;
+    margin: 0px;
+    line-height: 35px;
+    cursor: pointer;
 }
+#app-menu ul :not(collapsed) .arrow:before,
+#app-menu li :not(collapsed) .arrow:before {
+    font-family: FontAwesome;
+    content: "\f078";
+    display: inline-block;
+    padding-left: 10px;
+    padding-right: 10px;
+    vertical-align: middle;
+    float: right;
+}
+#app-menu ul .active,
+#app-menu li .active {
+    border-left: 3px solid #d19b3d;
+    background-color: #4f5b69;
+}
+#app-menu ul .sub-menu li.active,
+#app-menu li .sub-menu li.active {
+    color: #d19b3d;
+}
+#app-menu ul .sub-menu li.active a,
+#app-menu li .sub-menu li.active a {
+    color: #d19b3d;
+}
+#app-menu ul .sub-menu li,
+#app-menu li .sub-menu li {
+    background-color: #181c20;
+    border: none;
+    line-height: 28px;
+    border-bottom: 1px solid #23282e;
+    margin-left: 0px;
+}
+#app-menu ul .sub-menu li:hover,
+#app-menu li .sub-menu li:hover {
+    background-color: #020203;
+}
+#app-menu ul .sub-menu li:before,
+#app-menu li .sub-menu li:before {
+    font-family: FontAwesome;
+    content: "\f105";
+    display: inline-block;
+    padding-left: 10px;
+    padding-right: 10px;
+    vertical-align: middle;
+}
+#app-menu li {
+    padding-left: 0px;
+    border-left: 3px solid #2e353d;
+    border-bottom: 1px solid #23282e;
+}
+#app-menu li a {
+    text-decoration: none;
+    color: #e1ffff;
+}
+#app-menu li a i {
+    padding-left: 10px;
+    width: 20px;
+    padding-right: 20px;
+}
+#app-menu li:hover {
+    border-left: 3px solid #d19b3d;
+    background-color: #4f5b69;
+    -webkit-transition: all 1s ease;
+    -moz-transition: all 1s ease;
+    -o-transition: all 1s ease;
+    -ms-transition: all 1s ease;
+    transition: all 1s ease;
+}
+@media (max-width: 767px) {
+    #app-menu {
+        position: relative;
+        width: 100%;
+        margin-bottom: 10px;
+        max-width: none;
+        min-width: none;
+    }
+    #app-menu .toggle-btn {
+        display: block;
+        cursor: pointer;
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        z-index: 10 !important;
+        padding: 3px;
+        background-color: #ffffff;
+        color: #000;
+        width: 40px;
+        text-align: center;
+    }
+    .brand {
+        text-align: left !important;
+        font-size: 22px;
+        padding-left: 20px;
+        line-height: 50px !important;
+    }
+}
+@media (min-width: 767px) {
+    #app-menu .menu-list .menu-content {
+        display: block;
+    }
+}
+
+

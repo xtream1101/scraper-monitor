@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+{% block body %}
+<div id="main">
+    {% if environment.lower() == 'dev' %}
+    <h1 style="color: red;">DEV DATA</h1>
+    {% endif %}
+    <h1><span id="scraper-name"></span></h1>
+    <h2>Logs for run: <span id="scraper-run-info" class="uuid"></span></h2>
+    <input class="log-search" type="search" data-column="all">
+    <div class="hroz-scroll">
+        <table id="tbl-data-scraper-logs" class="tablesorter-bootstrap tablesorter table table-bordered table-hover table-striped" role="grid">
+            <thead>
+                <tr>
+                    <th class="timestamp">Time collected</th>
+                    <th>File</th>
+                    <th>Module</th>
+                    <th>Function</th>
+                    <th>Line</th>
+                    <th>Error lvl</th>
+                    <th>Thread Name</th>
+                    <th>Message</th>
+                    <th>Traceback</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+
+    <h2>History (last 10 runs)</h2>
+    <div class="hroz-scroll">
+        <table id="tbl-data-scraper-runs" class="simple-table tablesorter-bootstrap tablesorter table table-bordered table-hover table-striped" role="grid">
+            <thead>
+                <tr>
+                    <th>Run Id</th>
+                    <th class="timestamp">Start Time</th>
+                    <th class="timestamp">Stop Time</th>
+                    <th>Runtime (hh:mm:ss)</th>
+                    <th>Log Crit</th>
+                    <th>Log Err</th>
+                    <th>Log Warn</th>
+                    <th>Ref Data Count</th>
+                    <th>Ref Data Success</th>
+                    <th>Total urls Hit</th>
+                    <th>Url Error Count</th>
+                    <th>Annotation</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+
+
+</div>
+{% endblock %}

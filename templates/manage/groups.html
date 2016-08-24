@@ -1,6 +1,6 @@
 {% extends "layout.html" %}
 {% block body %}
-<div id="main" class="container">
+<div id="main" class="">
 
     <form action="" method="post" id="add-group" class="form-horizontal">
         <h4>Add new group</h4>
@@ -9,14 +9,24 @@
         placeholder="Name the group" value="{{ request.form.name }}"
         required>
 
+        <select id="organization" class="select-organization" name="organization">
+            {%- for organization in current_user.organizations %}
+            <option value="{{ organization.id }}">{{ organization.name }}</option>
+            {%- endfor %}
+        </select>
+
         <button type="submit" class="btn btn-success">Add Group</button>
     </form>
 
+
     <h2>All Groups</h2>
-    <table id="tbl-manage-groups" class="display table-hover table-striped">
+
+    <input class="search" type="search" data-column="all">
+    <button type="button" class="reset">Reset Search</button>
+    <table id="tbl-manage-groups" class="simple-table tablesorter-bootstrap tablesorter table table-bordered table-hover table-striped" role="grid">
         <thead>
             <tr>
-                <th>id</th>
+                <th>Organization</th>
                 <th>Name</th>
                 <th>Actions</th>
             </tr>
