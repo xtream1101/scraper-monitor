@@ -2,12 +2,18 @@
 
 Developed using Python 3.5 (use at least 3.4.2+)
 
-This project is a way to monitor scrapers. From how long each run takes to any errors it may encounter.  
-The logs api endpoint is meant to work directly with the python logging `HTTPHandler`.  
+This project is a way to monitor scrapers. From how long each run takes to any errors it may encounter.
+The logs api endpoint is meant to work directly with the python logging `HTTPHandler`.
 
 ## Install/Setup
 
-- TODO
+1. `git clone https://github.com/xtream1101/scraper-monitor`
+1. `pip3 install -r requirements.txt` Create a python3 virtual environment if you would like
+1. Rename `config.py.sample` to `config.py` and edit to reflect the values you need
+1. If using postgres, make sure that the schema exists in the database
+1. Run `python3 manage.py db migrate` to create/update the database tables
+1. Then Run `python3 manage.py db upgrade` to apply those database changes
+1. To start the server: `python3 main.py`
 
 
 ## Docker Usage
@@ -18,7 +24,7 @@ The logs api endpoint is meant to work directly with the python logging `HTTPHan
 ## API Endpoints
 _POST data is json_
 
-*Required by all requests:*  
+*Required by all requests:*
 - `GET`
   - *All required*
   - `apikey` - Api key of the organization the scraper is under

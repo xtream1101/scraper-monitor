@@ -8,7 +8,7 @@ SQLALCHEMY_DATABASE_URI = 'postgresql://username:password@host/database_name'
 
 # Set config values for Flask-Security.
 SECURITY_REGISTERABLE = True
-# Only allow emais with these domain to be able to register
+# Only allow emais with these domains to be able to register
 #  e.x. ['gmail.com', 'custom_domain.com']
 SECURITY_REGISTERABLE_EMAILS = []
 # We're using PBKDF2 with salt.
