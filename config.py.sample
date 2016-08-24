@@ -1,0 +1,30 @@
+DEBUG = False
+PORT = 5000
+HOST = '0.0.0.0'
+SCHEMA = 'scraper_monitor'
+# Replace this with your own secret key
+SECRET_KEY = 'Replace this with your own secret key'
+SQLALCHEMY_DATABASE_URI = 'postgresql://username:password@host/database_name'
+
+# Set config values for Flask-Security.
+SECURITY_REGISTERABLE = True
+# Only allow emais with these domain to be able to register
+#  e.x. ['gmail.com', 'custom_domain.com']
+SECURITY_REGISTERABLE_EMAILS = []
+# We're using PBKDF2 with salt.
+SECURITY_PASSWORD_HASH = 'pbkdf2_sha512'  # Do not change this value unless you know what you are doing
+# Replace this with your own salt.
+SECURITY_PASSWORD_SALT = 'some salt to use, please change me'
+
+
+# Flask-Security features
+SECURITY_REGISTERABLE = True
+SECURITY_CONFIRMABLE = True
+SECURITY_SEND_REGISTER_EMAIL = True
+
+# SMTP Mail server settings, required if `SECURITY_SEND_REGISTER_EMAIL` is True
+MAIL_SERVER = 'smtp_server_address'
+MAIL_PORT = 465
+MAIL_USE_SSL = True
+MAIL_USERNAME = 'username'
+MAIL_PASSWORD = 'password'
