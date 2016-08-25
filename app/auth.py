@@ -4,10 +4,9 @@ from wtforms.validators import DataRequired
 from flask_security import Security, user_registered, SQLAlchemyUserDatastore
 from flask_security.forms import unique_user_email, RegisterForm
 
-from app import app, db
-from models import User, Role, Organization, Group
+from app.app import app, db
+from app.models import User, Role, Organization, Group
 
-from pprint import pprint
 user_datastore = SQLAlchemyUserDatastore(db, User, Role)
 
 # Setup Flask-Security
@@ -26,7 +25,6 @@ class ExtendedRegisterForm(RegisterForm):
         validation = Form.validate(self)
 
         vaild_emails = app.config.get('SECURITY_REGISTERABLE_EMAILS')
-        pprint(self.email.data)
         try:
             # This will trigger an IndexError, thats fine since an email has to have an `@`
             email_domain = self.email.data.split('@')[1].strip()

@@ -1,8 +1,8 @@
-from flask_security import current_user, RoleMixin, UserMixin
-from hashids import Hashids
 import uuid
 import datetime
-from app import app, db
+from hashids import Hashids
+from flask_security import current_user, RoleMixin, UserMixin
+from app.app import app, db
 
 
 def generate_uid():

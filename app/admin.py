@@ -3,8 +3,8 @@ from flask_admin.contrib import sqla
 from wtforms.fields import PasswordField
 from flask_admin import Admin
 
-from app import app, db
-from models import User, Role
+from app.app import app, db
+from app.models import User, Role
 
 
 # Customized User model for SQL-Admin
