@@ -10,6 +10,7 @@ if [ "$cmd" = 'manage' ]; then
 elif [ $# == 0 ]; then
 
     python3 /src/manage.py db migrate
+    python3 /src/manage.py db upgrade
     python3 /src/main.py
 
 else
