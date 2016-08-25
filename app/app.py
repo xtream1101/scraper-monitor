@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.config['SECURITY_USER_IDENTITY_ATTRIBUTES'] = ['email', 'username']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config.from_pyfile('config.py')
+app.config.from_pyfile('../config.py')
 
 api = Api(app, prefix='/api/v1')
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})

@@ -2,8 +2,8 @@ from functools import wraps
 from flask import request
 import logging
 from flask_restful import Resource, abort
-from app import socketio, api
-from models import *
+from app.app import socketio, api
+from app.models import *
 
 logger = logging.getLogger(__name__)
 

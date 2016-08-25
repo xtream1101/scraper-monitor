@@ -1,11 +1,11 @@
 import os
-from app import app, db
-from api import *
-from admin import *
-from auth import *
-from models import *
-from views import *
 import logging
+from app.app import app, db
+from app.api import *
+from app.admin import *
+from app.auth import *
+from app.models import *
+from app.views import *
 
 os.environ['TZ'] = 'UTC'
 
