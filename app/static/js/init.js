@@ -88,7 +88,7 @@ var _template = {
     dataScraperRow: _.template(
         '<tr id="{{status}}-{{scraperKey}}">' +
             '<td class="scraper-organization">{{organization}}</td>' +
-            '<td class="scraper-name"><a href="/data/scrapers/dev/{{scraperKey}}">{{name}}</a></td>' +
+            '<td class="scraper-name"><a href="{{scraperKey}}">{{name}}</a></td>' +
             '<td class="scraper-startTime">{{startTime}}</td>' +
             '<td class="scraper-stopTime">{{stopTime}}</td>' +
             '<td class="scraper-runtime">{{runtime}}</td>' +
@@ -229,7 +229,7 @@ function initPage(){
         $('#add-organization').on( "submit", submitForm);
         $('#add-organization-user').on( "submit", submitForm);
 
-    }else if( page === '/data/scrapers/dev' || page === '/data/scrapers/prod' ){
+    }else if( page === '/data/scrapers/dev/' || page === '/data/scrapers/prod/' ){
         socketListen = 'data-scrapers';
     }else{
         var path = page.split('/');
@@ -241,7 +241,7 @@ function initPage(){
     if( socketListen !== null ){
         socket.on(socketListen, function( data ){
             console.log("WebSocket: ", data);
-            if( page === '/data/scrapers/dev' || page === '/data/scrapers/prod' ){
+            if( page === '/data/scrapers/dev/' || page === '/data/scrapers/prod/' ){
                 addToScraperTable(data);
             }else if( page === '/manage/organizations' ){
                 addOrganizations(data);
@@ -403,7 +403,7 @@ function addToManageTable( response, tableName ){
                     newRow = _template.manageGroupsRow(rowData);
                 }else if( page === '/manage/organizations' ){
                     newRow = _template.manageOrganizationsRow(rowData);
-                }else if( page === '/data/scrapers/dev' || page === '/data/scrapers/prod' ){
+                }else if( page === '/data/scrapers/dev/' || page === '/data/scrapers/prod/' ){
                     newRow = _template.dataScraperRow(rowData);
                 }
                 $table.append(newRow);
