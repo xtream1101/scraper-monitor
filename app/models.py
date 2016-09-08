@@ -214,6 +214,7 @@ class ScraperRun(db.Model):
                 'name': self.scraper.name,
                 'scraperKey': self.scraper_key,
                 'group_id': self.group_id,
+                'group': self.scraper.group.name,
                 'startTime': datetime_to_str(self.start_time),
                 'stopTime': datetime_to_str(self.stop_time),
                 'runtime': self.runtime,

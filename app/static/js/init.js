@@ -8,48 +8,48 @@ var url = baseUrl + page;
 
 
 var _template = {
-    scraperWrapper: _.template(
-        '<table id={{runClass}}-{{scraperKey}} class="table">' +
-            '<thead class="invisible">' +
-                '<tr>' +
-                    '<th class="scraper-name">Name</th>' +
-                    '<th>Start Time</th>' +
-                    '<th>Stop Time</th>' +
-                    '<th>Runtime</th>' +
-                    '<th>Log Criticals</th>' +
-                    '<th>Log Errors</th>' +
-                    '<th>Log Warnings</th>' +
-                    '<th>URL Errors</th>' +
-                '</tr>' +
-            '</thead>' +
-            '<tbody class="panel-heading" data-toggle="collapse" href="#collapse-{{runClass}}-{{scraperKey}}">' +
-                '<tr id="{{uuid}}">' +
-                    '<td class="scraper-name">{{name}}</td>' +
-                    '<td>{{startTime}}</td>' +
-                    '<td>{{stopTime}}</td>' +
-                    '<td>{{runtime}}</td>' +
-                    '<td>{{criticalCount}}</td>' +
-                    '<td>{{errorCount}}</td>' +
-                    '<td>{{warningCount}}</td>' +
-                    '<td>{{urlErrorCount}}</td>' +
-                '</tr>' +
-            '</tbody>' +
-            '<tbody id="collapse-{{runClass}}-{{scraperKey}}" class="collapse runs">' +
-            '</tbody>' +
-        '</table>'
-    ),
-    scraperRun: _.template(
-        '<tr id="{{uuid}}">' +
-            '<td class="scraper-name"></td>' +
-            '<td>{{startTime}}</td>' +
-            '<td>{{stopTime}}</td>' +
-            '<td>{{runtime}}</td>' +
-            '<td>{{criticalCount}}</td>' +
-            '<td>{{errorCount}}</td>' +
-            '<td>{{warningCount}}</td>' +
-            '<td>{{urlErrorCount}}</td>' +
-        '</tr>'
-    ),
+    // scraperWrapper: _.template(
+    //     '<table id={{runClass}}-{{scraperKey}} class="table">' +
+    //         '<thead class="invisible">' +
+    //             '<tr>' +
+    //                 '<th class="scraper-name">Name</th>' +
+    //                 '<th>Start Time</th>' +
+    //                 '<th>Stop Time</th>' +
+    //                 '<th>Runtime</th>' +
+    //                 '<th>Log Criticals</th>' +
+    //                 '<th>Log Errors</th>' +
+    //                 '<th>Log Warnings</th>' +
+    //                 '<th>URL Errors</th>' +
+    //             '</tr>' +
+    //         '</thead>' +
+    //         '<tbody class="panel-heading" data-toggle="collapse" href="#collapse-{{runClass}}-{{scraperKey}}">' +
+    //             '<tr id="{{uuid}}">' +
+    //                 '<td class="scraper-name">{{name}}</td>' +
+    //                 '<td>{{startTime}}</td>' +
+    //                 '<td>{{stopTime}}</td>' +
+    //                 '<td>{{runtime}}</td>' +
+    //                 '<td>{{criticalCount}}</td>' +
+    //                 '<td>{{errorCount}}</td>' +
+    //                 '<td>{{warningCount}}</td>' +
+    //                 '<td>{{urlErrorCount}}</td>' +
+    //             '</tr>' +
+    //         '</tbody>' +
+    //         '<tbody id="collapse-{{runClass}}-{{scraperKey}}" class="collapse runs">' +
+    //         '</tbody>' +
+    //     '</table>'
+    // ),
+    // scraperRun: _.template(
+    //     '<tr id="{{uuid}}">' +
+    //         '<td class="scraper-name"></td>' +
+    //         '<td>{{startTime}}</td>' +
+    //         '<td>{{stopTime}}</td>' +
+    //         '<td>{{runtime}}</td>' +
+    //         '<td>{{criticalCount}}</td>' +
+    //         '<td>{{errorCount}}</td>' +
+    //         '<td>{{warningCount}}</td>' +
+    //         '<td>{{urlErrorCount}}</td>' +
+    //     '</tr>'
+    // ),
     organization: _.template(
         '<div id="{{rowId}}" class="organization">' +
             '<b><span class="name">{{name}}</span> | ' +
@@ -85,9 +85,24 @@ var _template = {
             '<td class="apikey-actions">{{actions}}</td>' +
         '</tr>'
     ),
+    dataScraperRowRunning: _.template(
+        '<tr id="{{status}}-{{scraperKey}}">' +
+            '<td class="scraper-organization">{{organization}}</td>' +
+            '<td class="scraper-group">{{group}}</td>' +
+            '<td class="scraper-name"><a href="{{scraperKey}}">{{name}}</a></td>' +
+            '<td class="scraper-startTime">{{startTime}}</td>' +
+            '<td class="scraper-stopTime">{{stopTime}}</td>' +
+            '<td class="scraper-runtime">{{runtime}}</td>' +
+            '<td class="scraper-criticalCount">{{criticalCount}}</td>' +
+            '<td class="scraper-errorCount">{{errorCount}}</td>' +
+            '<td class="scraper-warningCount">{{warningCount}}</td>' +
+            '<td class="scraper-urlErrorCount">{{urlErrorCount}}</td>' +
+        '</tr>'
+    ),
     dataScraperRow: _.template(
         '<tr id="{{status}}-{{scraperKey}}">' +
             '<td class="scraper-organization">{{organization}}</td>' +
+            '<td class="scraper-group">{{group}}</td>' +
             '<td class="scraper-name"><a href="{{scraperKey}}">{{name}}</a></td>' +
             '<td class="scraper-startTime">{{startTime}}</td>' +
             '<td class="scraper-stopTime">{{stopTime}}</td>' +
@@ -403,8 +418,6 @@ function addToManageTable( response, tableName ){
                     newRow = _template.manageGroupsRow(rowData);
                 }else if( page === '/manage/organizations' ){
                     newRow = _template.manageOrganizationsRow(rowData);
-                }else if( page === '/data/scrapers/dev/' || page === '/data/scrapers/prod/' ){
-                    newRow = _template.dataScraperRow(rowData);
                 }
                 $table.append(newRow);
             }
@@ -446,7 +459,12 @@ function addToScraperTable( response ){
 
             if( !$row.length ){
                 // Add the row
-                var newRow = _template.dataScraperRow(scraper);
+                var newRow;
+                if( scraper.status === 'running' ){
+                    newRow = _template.dataScraperRowRunning(scraper);
+                }else{
+                    newRow = _template.dataScraperRow(scraper);
+                }
                 $table.append(newRow);
             }else{
                 // Update the row
