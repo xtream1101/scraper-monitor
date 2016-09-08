@@ -822,7 +822,7 @@ def data_scraper_run_logs(run_uuid):
     return jsonify(rdata)
 
 
-@socketio.on('connect', namespace='/data/scrapers/dev')
+@socketio.on('connect', namespace='/data/scrapers/dev/')
 def connect_data_scrapers_dev():
     if not current_user.is_authenticated:
         # If user is not logged in, deny them access
@@ -831,7 +831,7 @@ def connect_data_scrapers_dev():
     get_data_scrapers('dev')
 
 
-@socketio.on('connect', namespace='/data/scrapers/prod')
+@socketio.on('connect', namespace='/data/scrapers/prod/')
 def connect_data_scrapers_prod():
     if not current_user.is_authenticated:
         # If user is not logged in, deny them access
@@ -865,7 +865,7 @@ def data_scrapers():
     return redirect(url_for('data_scrapers_env', environment='prod'))
 
 
-@app.route('/data/scrapers/<string:environment>', methods=['GET'])
+@app.route('/data/scrapers/<string:environment>/', methods=['GET'])
 @login_required
 def data_scrapers_env(environment):
     if environment not in ['dev', 'prod']:
