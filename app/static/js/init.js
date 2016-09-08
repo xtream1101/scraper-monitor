@@ -473,6 +473,7 @@ function addToScraperTable( response ){
                 });
             }
         }
+
         if( action === 'increment' || action === 'update' ){
             $.each( scraper, function( field, value ){
                 var fieldsToIncrement = ['criticalCount', 'errorCount', 'warningCount', 'urlErrorCount']
@@ -487,7 +488,7 @@ function addToScraperTable( response ){
             });
 
         }else if( action === 'stop' ){
-            console.log("stoppiong scraper")
+            console.log("stopping scraper")
         }else if( action === 'delete' ){
             $row.remove();
         }
