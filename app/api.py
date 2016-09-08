@@ -116,7 +116,7 @@ class APIScraperLogging(Resource):
 
         socketio.emit('data-scrapers',
                       {'data': data, 'action': 'increment'},
-                      namespace='/data/scrapers/{env}'.format(env=client_data['environment'].lower()),
+                      namespace='/data/scrapers/{env}/'.format(env=client_data['environment'].lower()),
                       room='organization-{org_id}'.format(org_id=log.scraper_run.scraper.group.organization_id)
                       )
 
@@ -153,7 +153,7 @@ class APIScraperDataStart(Resource):
 
         socketio.emit('data-scrapers',
                       {'data': data, 'action': 'start'},
-                      namespace='/data/scrapers/{env}'.format(env=client_data['environment'].lower()),
+                      namespace='/data/scrapers/{env}/'.format(env=client_data['environment'].lower()),
                       room='organization-{org_id}'.format(org_id=run.scraper.group.organization_id)
                       )
 
@@ -197,7 +197,7 @@ class APIScraperDataStop(Resource):
 
         socketio.emit('data-scrapers',
                       {'data': data, 'action': 'stop'},
-                      namespace='/data/scrapers/{env}'.format(env=client_data['environment'].lower()),
+                      namespace='/data/scrapers/{env}/'.format(env=client_data['environment'].lower()),
                       room='organization-{org_id}'.format(org_id=run.scraper.group.organization_id)
                       )
 
@@ -237,7 +237,7 @@ class APIScraperErrorUrl(Resource):
 
         socketio.emit('data-scrapers',
                       {'data': data, 'action': 'increment'},
-                      namespace='/data/scrapers/{env}'.format(env=client_data['environment'].lower()),
+                      namespace='/data/scrapers/{env}/'.format(env=client_data['environment'].lower()),
                       room='organization-{org_id}'.format(org_id=url_error.scraper_run.scraper.group.organization_id)
                       )
 
