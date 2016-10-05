@@ -20,10 +20,7 @@ def datetime_to_str(timestamp):
     # The script is set to use UTC, so all times are in UTC
     return timestamp.isoformat() + "+0000"
 
-if app.config.get('SCHEMA') is not None:
-    SCHEMA = app.config.get('SCHEMA')
-else:
-    SCHEMA = 'scraper_monitor'
+SCHEMA = app.config.get('SCHEMA')
 
 roles_users = db.Table(
     'roles_users',
