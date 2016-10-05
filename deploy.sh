@@ -1,5 +1,5 @@
 #!/bin/bash
-# Simple script to increment the version number and push to docker hub
+# Simple script to increment the version number and a git tag
 
 for i in "$@"
 do
@@ -47,10 +47,6 @@ echo "$MAJOR.$MID.$MINOR" > VERSION
 
 git add VERSION
 git commit -m "autoinc version to $MAJOR.$MID.$MINOR"
-git tag -a "v$MAJOR.$MID.$MINOR" -m "version $MAJOR.$MID.$MINOR"
+git tag -a "$MAJOR.$MID.$MINOR" -m "version $MAJOR.$MID.$MINOR"
 git push
 git push origin --tags
-
-docker build -t "scraper-monitor" -t "xtream1101/scraper-monitor:$MAJOR.$MID.$MINOR" -t "xtream1101/scraper-monitor:latest" .
-docker push "xtream1101/scraper-monitor:$MAJOR.$MID.$MINOR"
-docker push "xtream1101/scraper-monitor:latest"
