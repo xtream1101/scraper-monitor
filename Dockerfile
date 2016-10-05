@@ -14,4 +14,6 @@ WORKDIR /src/
 
 RUN chmod +x docker-entrypoint.sh
 
+EXPOSE 5001
+
 ENTRYPOINT ["/src/docker-entrypoint.sh"]
