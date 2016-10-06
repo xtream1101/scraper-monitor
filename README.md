@@ -11,8 +11,7 @@ The logs api endpoint is meant to work directly with the python logging `HTTPHan
 1. `pip3 install -r requirements.txt` Create a python3 virtual environment if you would like
 1. Rename `config.py.sample` to `config.py` and edit to reflect the values you need
 1. If using postgres, make sure that the schema exists in the database
-1. Run `python3 manage.py db init` to set up migrations
-1. `python3 manage.py copy_env`
+1. Run `python3 manage.py db stamp head`
 1. `python3 manage.py db migrate`
 1. `python3 manage.py db upgrade`
 1. To start the server: `python3 main.py`
@@ -20,8 +19,6 @@ The logs api endpoint is meant to work directly with the python logging `HTTPHan
 ## To update
 1. `git clone https://github.com/xtream1101/scraper-monitor`
 1. `pip3 install -r requirements.txt` Create a python3 virtual environment if you would like
-1. `python3 manage.py copy_env`  Update the migrations env.py file
-1. `python3 manage.py db migrate`  Might not need since the pull will already have the migrations needed in it.
 1. `python3 manage.py db upgrade`
 
 ## Docker Usage

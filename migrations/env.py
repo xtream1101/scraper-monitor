@@ -1,3 +1,4 @@
+# Modified from: https://gist.github.com/nickretallack/bb8ca0e37829b4722dd1
 from __future__ import with_statement
 import logging
 from alembic import context
@@ -114,17 +115,18 @@ def run_migrations_online():
                                 prefix='sqlalchemy.',
                                 poolclass=pool.NullPool)
 
-    schemas = set([current_schema, None])
+    schemas = set([current_schema])
 
     connection = engine.connect()
     context.configure(connection=connection,
                       target_metadata=target_metadata,
                       process_revision_directives=process_revision_directives,
-                      include_schemas=True, #schemas,
-                      include_object=include_schemas([None, current_schema]))
+                      include_schemas=True,
+                      include_object=include_schemas([current_schema]),
+                      )
 
     try:
-        connection.execute('set search_path to "{schema}", public'.format(schema=current_schema))
+        connection.execute('set search_path to "{schema}"'.format(schema=current_schema))
         with context.begin_transaction():
             context.run_migrations()
     finally:
@@ -136,3 +138,4 @@ if context.is_offline_mode():
     # run_migrations_offline()
 else:
     run_migrations_online()
+    print("foo")
