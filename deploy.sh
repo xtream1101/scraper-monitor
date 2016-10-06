@@ -53,8 +53,9 @@ fi
 echo "New version $MAJOR.$MID.$MINOR"
 
 if [ -n "$DEV" ]; then
-    docker build -t "scraper-monitor" -t "xtream1101/scraper-monitor:dev-$GITHASH" .
+    docker build -t "scraper-monitor" -t "xtream1101/scraper-monitor:dev-latest" -t "xtream1101/scraper-monitor:dev-$GITHASH" .
     docker push "xtream1101/scraper-monitor:dev-$GITHASH"
+    docker push "xtream1101/scraper-monitor:dev-latest"
 else
     echo "$MAJOR.$MID.$MINOR" > VERSION
 

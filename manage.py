@@ -12,13 +12,6 @@ db.create_all()  # Used on fresh installs
 
 migrate = Migrate(app, db)
 
-@migrate.configure
-def configure_alembic(config):
-    # modify config object
-    print(config)
-    return config
-
-
 manager = Manager(app)
 manager.add_command('db', MigrateCommand)
 
