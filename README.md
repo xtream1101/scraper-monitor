@@ -25,8 +25,8 @@ The logs api endpoint is meant to work directly with the python logging `HTTPHan
 
 1. Get the image: `docker pull xtream1101/scraper-monitor:latest`
 1. You must have a config file that locally that is filled in to mount to the image on run
-1. If databases have not been set up run (set port based on config): `docker run -v config.py:/src/config.py -p 5000:5000 xtream1101/scraper-monitor:latest manage db stamp head`
-1. Then run the app: `docker run -d -v config.py:/src/config.py -p 5000:5000 xtream1101/scraper-monitor:latest`
+1. If databases have not been set up run (set port based on config): `docker run -v config.py:/src/config.py -p 5001:5001 xtream1101/scraper-monitor:latest manage db stamp head`
+1. Then run the app: `docker run -d -v config.py:/src/config.py -p 5001:5001 xtream1101/scraper-monitor:latest`
 
 To have the logs locally, mount a volume to the `/src/logs` directory
 
