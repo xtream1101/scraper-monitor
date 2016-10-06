@@ -1,8 +1,9 @@
+# Modified from: https://gist.github.com/nickretallack/bb8ca0e37829b4722dd1
 from __future__ import with_statement
-from alembic import context
-from sqlalchemy import engine_from_config, pool
-from logging.config import fileConfig
 import logging
+from alembic import context
+from logging.config import fileConfig
+from sqlalchemy import engine_from_config, pool, MetaData, Table
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -18,11 +19,9 @@ logger = logging.getLogger('alembic.env')
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 from flask import current_app
-config.set_main_option('sqlalchemy.url',
-                       current_app.config.get('SQLALCHEMY_DATABASE_URI'))
-target_metadata = current_app.extensions['migrate'].db.metadata
-
+config.set_main_option('sqlalchemy.url', current_app.config.get('SQLALCHEMY_DATABASE_URI'))
 current_schema = current_app.config['SCHEMA']
+
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -35,6 +34,44 @@ def include_schemas(names):
             return object.schema in names
         return True
     return include_object
+
+
+def _get_table_key(name, schema):
+    if schema is None:
+        return name
+    else:
+        return schema + "." + name
+
+
+def tometadata(table, metadata, schema):
+    key = _get_table_key(table.name, schema)
+    if key in metadata.tables:
+        return metadata.tables[key]
+
+    args = []
+    for c in table.columns:
+        args.append(c.copy(schema=schema))
+    new_table = Table(table.name, metadata, schema=schema, *args, **table.kwargs)
+    for c in table.constraints:
+        new_table.append_constraint(c.copy(schema=schema, target_table=new_table))
+
+    for index in table.indexes:
+        # skip indexes that would be generated
+        # by the 'index' flag on Column
+        if len(index.columns) == 1 and \
+                list(index.columns)[0].index:
+            continue
+        Index(index.name, unique=index.unique,
+              *[new_table.c[col] for col in index.columns.keys()],
+              **index.kwargs)
+    return table._schema_item_copy(new_table)
+
+
+meta = current_app.extensions['migrate'].db.metadata
+meta_schemax = MetaData()
+for table in meta.tables.values():
+    tometadata(table, meta_schemax, current_schema)
+target_metadata = meta_schemax
 
 
 def run_migrations_offline():
@@ -78,21 +115,26 @@ def run_migrations_online():
                                 prefix='sqlalchemy.',
                                 poolclass=pool.NullPool)
 
+    schemas = set([current_schema])
+
     connection = engine.connect()
     context.configure(connection=connection,
                       target_metadata=target_metadata,
                       process_revision_directives=process_revision_directives,
                       include_schemas=True,
-                      include_object=include_schemas([None, current_schema]),
-                      **current_app.extensions['migrate'].configure_args)
+                      include_object=include_schemas([current_schema]),
+                      )
 
     try:
+        connection.execute('set search_path to "{schema}"'.format(schema=current_schema))
         with context.begin_transaction():
             context.run_migrations()
     finally:
         connection.close()
 
+
 if context.is_offline_mode():
-    run_migrations_offline()
+    print("Can't run migrations offline")
+    # run_migrations_offline()
 else:
     run_migrations_online()

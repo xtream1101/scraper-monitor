@@ -11,21 +11,22 @@ The logs api endpoint is meant to work directly with the python logging `HTTPHan
 1. `pip3 install -r requirements.txt` Create a python3 virtual environment if you would like
 1. Rename `config.py.sample` to `config.py` and edit to reflect the values you need
 1. If using postgres, make sure that the schema exists in the database
-1. Run `python3 manage.py db stamp head` to create/update the database tables
+1. Run `python3 manage.py db stamp head`
+1. `python3 manage.py db migrate`
+1. `python3 manage.py db upgrade`
 1. To start the server: `python3 main.py`
 
 ## To update
 1. `git clone https://github.com/xtream1101/scraper-monitor`
 1. `pip3 install -r requirements.txt` Create a python3 virtual environment if you would like
-1. `python3 manage.py db migrate`  Might not need since the pull will already have the migrations needed in it.
 1. `python3 manage.py db upgrade`
 
 ## Docker Usage
 
 1. Get the image: `docker pull xtream1101/scraper-monitor:latest`
 1. You must have a config file that locally that is filled in to mount to the image on run
-1. If databases have not been set up run (set port based on config): `docker run -v config.py:/src/config.py -p 5000:5000 scraper-monitor:latest manage db stamp head`
-1. Then run the app: `docker run -d -v config.py:/src/config.py -p 5000:5000 scraper-monitor:latest`
+1. If databases have not been set up run (set port based on config): `docker run -v config.py:/src/config.py -p 5001:5001 xtream1101/scraper-monitor:latest manage db stamp head`
+1. Then run the app: `docker run -d -v config.py:/src/config.py -p 5001:5001 xtream1101/scraper-monitor:latest`
 
 To have the logs locally, mount a volume to the `/src/logs` directory
 

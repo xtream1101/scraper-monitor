@@ -5,7 +5,6 @@ from flask_cors import CORS
 from flask_restful import Api
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail
-# from api import APIScraperLogging, APIScraperDataStart, APIScraperDataStop, APIScraperErrorUrl
 from flask_socketio import SocketIO
 
 async_mode = 'eventlet'
@@ -20,6 +19,9 @@ app = Flask(__name__)
 app.config['SECURITY_USER_IDENTITY_ATTRIBUTES'] = ['email', 'username']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config.from_pyfile('../config.py')
+
+if app.config.get('SCHEMA') is None:
+    app.config['SCHEMA'] = 'scraper_monitor'
 
 api = Api(app, prefix='/api/v1')
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})

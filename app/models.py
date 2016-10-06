@@ -20,10 +20,15 @@ def datetime_to_str(timestamp):
     # The script is set to use UTC, so all times are in UTC
     return timestamp.isoformat() + "+0000"
 
-if app.config.get('SCHEMA') is not None:
-    SCHEMA = app.config.get('SCHEMA')
-else:
-    SCHEMA = 'scraper_monitor'
+
+SCHEMA = app.config.get('SCHEMA')
+
+# This table is here so when migrate is run it does not try and delete it
+class AlembicVersion(db.Model):
+    __tablename__ = 'alembic_version'
+    __table_args__ = {'schema': SCHEMA}
+    version_num = db.Column(db.String(32), primary_key=True)
+
 
 roles_users = db.Table(
     'roles_users',
