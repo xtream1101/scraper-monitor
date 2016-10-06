@@ -38,6 +38,7 @@ MINOR=$(cat VERSION | cut -f3 -d.)
 
 if [ -n "$DEV" ]; then
     echo "Do not increase version in dev mode"
+    GITHASH=$(git rev-parse HEAD | cut -c 1-7)
 elif [ -n "$UPDATE_MAJOR" ]; then
     MINOR=0
     MID=0
@@ -52,8 +53,8 @@ fi
 echo "New version $MAJOR.$MID.$MINOR"
 
 if [ -n "$DEV" ]; then
-    docker build -t "scraper-monitor" -t "xtream1101/scraper-monitor:dev" .
-    docker push "xtream1101/scraper-monitor:dev"
+    docker build -t "scraper-monitor" -t "xtream1101/scraper-monitor:dev-$GITHASH" .
+    docker push "xtream1101/scraper-monitor:dev-$GITHASH"
 else
     echo "$MAJOR.$MID.$MINOR" > VERSION
 
