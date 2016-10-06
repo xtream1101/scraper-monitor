@@ -50,10 +50,7 @@ def tometadata(table, metadata, schema):
     args = []
     for c in table.columns:
         args.append(c.copy(schema=schema))
-    new_table = Table(
-        table.name, metadata, schema=schema,
-        *args, **table.kwargs
-        )
+    new_table = Table(table.name, metadata, schema=schema, *args, **table.kwargs)
     for c in table.constraints:
         new_table.append_constraint(c.copy(schema=schema, target_table=new_table))
 
@@ -63,11 +60,11 @@ def tometadata(table, metadata, schema):
         if len(index.columns) == 1 and \
                 list(index.columns)[0].index:
             continue
-        Index(index.name,
-              unique=index.unique,
+        Index(index.name, unique=index.unique,
               *[new_table.c[col] for col in index.columns.keys()],
               **index.kwargs)
     return table._schema_item_copy(new_table)
+
 
 meta = current_app.extensions['migrate'].db.metadata
 meta_schemax = MetaData()
@@ -113,23 +110,21 @@ def run_migrations_online():
                 directives[:] = []
                 logger.info('No changes in schema detected.')
 
-    engine = engine_from_config(
-                config.get_section(config.config_ini_section),
-                prefix='sqlalchemy.',
-                poolclass=pool.NullPool)
+    engine = engine_from_config(config.get_section(config.config_ini_section),
+                                prefix='sqlalchemy.',
+                                poolclass=pool.NullPool)
 
     schemas = set([current_schema, None])
 
     connection = engine.connect()
-    context.configure(
-        connection=connection,
-        target_metadata=target_metadata,
-        include_schemas=True, #schemas,
-        include_object=include_schemas([None, current_schema])
-    )
+    context.configure(connection=connection,
+                      target_metadata=target_metadata,
+                      process_revision_directives=process_revision_directives,
+                      include_schemas=True, #schemas,
+                      include_object=include_schemas([None, current_schema]))
 
     try:
-        connection.execute('set search_path to "{}", public'.format(current_schema))
+        connection.execute('set search_path to "{schema}", public'.format(schema=current_schema))
         with context.begin_transaction():
             context.run_migrations()
     finally:
