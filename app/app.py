@@ -3,7 +3,7 @@ import eventlet
 from flask import Flask
 from flask_cors import CORS
 from flask_restful import Api
-from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy, event
 from flask_mail import Mail
 from flask_socketio import SocketIO
 
@@ -31,3 +31,11 @@ socketio = SocketIO(app, async_mode=async_mode)
 
 mail = Mail(app)
 db = SQLAlchemy(app)
+
+
+def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+    statement = "SET search_path TO '%s'; %s" % (app.config['SCHEMA'], statement)
+    return statement, parameters
+
+
+event.listen(db.engine, 'before_cursor_execute', before_cursor_execute, retval=True)

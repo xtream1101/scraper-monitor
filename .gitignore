@@ -3,3 +3,4 @@
 *.pyc
 config.py
 *__pycache__
+migrations/
