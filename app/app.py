@@ -20,6 +20,10 @@ app.config['SECURITY_USER_IDENTITY_ATTRIBUTES'] = ['email', 'username']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config.from_pyfile('../config.py')
 
+if app.config.get('FORCE_HTTPS') is True:
+    from flask_sslify import SSLify
+    sslify = SSLify(app)
+
 if app.config.get('SCHEMA') is None:
     app.config['SCHEMA'] = 'scraper_monitor'
 
