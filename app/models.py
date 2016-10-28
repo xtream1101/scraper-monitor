@@ -190,6 +190,7 @@ class ScraperRun(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     uuid = db.Column(db.String(32), unique=True)
     environment = db.Column(db.String(4), default='DEV')
+    machine_name = db.Column(db.String(1024))
     start_time = db.Column(db.DateTime)
     stop_time = db.Column(db.DateTime)
     runtime = db.Column(db.Float)

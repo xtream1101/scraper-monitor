@@ -143,6 +143,7 @@ class APIScraperDataStart(Resource):
         run.scraper_key = client_data['scraperKey']
         run.group_id = group_id
         run.environment = client_data.get('environment')
+        run.machine_name = client_data.get('machine_name')
         run.uuid = client_data['scraperRun']
         run.start_time = data['startTime']
 
